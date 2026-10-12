@@ -181,6 +181,24 @@ tokens; `/me` checks that the account still exists. Rotate the signing key to
 invalidate all issued tokens, or add a revocation mechanism if immediate
 per-account invalidation is required. Existing accounts need PBKDF2 hashes to log in.
 
+## User helpers
+
+Inject `UserHelper` from `com.AgentOps.helpers` to reuse `getUserById`,
+`getUserByEmail`, `normalizeEmail`, and `ensureEmailAvailable`. Missing users
+return 404; invalid IDs or blank emails return 400; duplicate emails return 409.
+The email availability check supplements the database unique constraint.
+Registration and login reuse these helpers; login retains its generic credentials
+error and dummy password comparison for unknown accounts.
+
+Inject `SecurityHelper` for `getCurrentUser`, `getCurrentUserId`,
+`isCurrentUser(Long userId)`, and `hasRole(UserRole role)`. Current-user getters
+require an authenticated JWT and return 401 otherwise. `getCurrentUser` also
+checks the database and returns 401 for a deleted account. Boolean checks return
+false for anonymous requests; role checks use the JWT's granted authorities,
+matching Spring Security. ID and role checks do not query the database.
+Use the resource's actual owner ID with `isCurrentUser`; user lookups alone do
+not authorize access to another user's records.
+
 ## Tests
 
 Tests use JUnit Jupiter. `GlobalExceptionHandlerUnitTests` uses Mockito's

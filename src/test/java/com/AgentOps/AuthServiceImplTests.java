@@ -4,6 +4,7 @@ import com.AgentOps.dto.request.*;
 import com.AgentOps.entities.User;
 import com.AgentOps.entities.enums.UserRole;
 import com.AgentOps.exceptions.*;
+import com.AgentOps.helpers.UserHelper;
 import com.AgentOps.repositories.UserRepository;
 import com.AgentOps.security.JwtService;
 import com.AgentOps.services.servicesImp.AuthServiceImpl;
@@ -29,7 +30,7 @@ class AuthServiceImplTests {
     @BeforeEach
     void setup() {
         when(passwords.encode("unused-account-timing-comparison")).thenReturn("dummy-hash");
-        service = new AuthServiceImpl(users, passwords, tokens);
+        service = new AuthServiceImpl(users, new UserHelper(users), passwords, tokens);
     }
 
     @Test

@@ -5,6 +5,7 @@ import com.AgentOps.dto.response.*;
 import com.AgentOps.entities.User;
 import com.AgentOps.entities.enums.UserRole;
 import com.AgentOps.exceptions.*;
+import com.AgentOps.helpers.UserHelper;
 import com.AgentOps.repositories.UserRepository;
 import com.AgentOps.security.JwtService;
 import com.AgentOps.services.AuthService;
@@ -12,17 +13,18 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.Locale;
 
 @Service
 public class AuthServiceImpl implements AuthService {
     private final UserRepository users;
+    private final UserHelper userHelper;
     private final PasswordEncoder passwords;
     private final JwtService tokens;
     private final String dummyPasswordHash;
 
-    public AuthServiceImpl(UserRepository users, PasswordEncoder passwords, JwtService tokens) {
+    public AuthServiceImpl(UserRepository users, UserHelper userHelper, PasswordEncoder passwords, JwtService tokens) {
         this.users = users;
+        this.userHelper = userHelper;
         this.passwords = passwords;
         this.tokens = tokens;
         this.dummyPasswordHash = passwords.encode("unused-account-timing-comparison");
@@ -31,10 +33,8 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        String email = normalize(request.email());
-        if (users.existsByEmailIgnoreCase(email)) {
-            throw new ConflictException("An account with this email already exists.");
-        }
+        String email = userHelper.normalizeEmail(request.email());
+        userHelper.ensureEmailAvailable(email);
         User user = new User();
         user.setEmail(email);
         user.setPasswordHash(passwords.encode(request.password()));
@@ -50,7 +50,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
-        User user = users.findByEmailIgnoreCase(normalize(request.email())).orElse(null);
+        User user = users.findByEmailIgnoreCase(userHelper.normalizeEmail(request.email())).orElse(null);
         boolean matches = passwords.matches(request.password(), user == null ? dummyPasswordHash : user.getPasswordHash());
         if (user == null || !matches) {
             throw new InvalidCredentialsException();
@@ -64,11 +64,14 @@ public class AuthServiceImpl implements AuthService {
         long id;
         try { id = Long.parseLong(subject); }
         catch (NumberFormatException exception) { throw new UnauthorizedException(); }
-        return response(users.findById(id).orElseThrow(UnauthorizedException::new));
-    }
-
-    private String normalize(String email) {
-        return email.trim().toLowerCase(Locale.ROOT);
+        if (id <= 0) {
+            throw new UnauthorizedException();
+        }
+        try {
+            return response(userHelper.getUserById(id));
+        } catch (ResourceNotFoundException exception) {
+            throw new UnauthorizedException();
+        }
     }
 
     private AuthResponse authenticated(User user) {
