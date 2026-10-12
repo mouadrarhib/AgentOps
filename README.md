@@ -47,3 +47,17 @@ so it has no single-table foreign key. The service layer must validate the targe
 ensure a ticket's customer matches its order, and set approval decision details.
 
 The enum values are initial workflow choices and can be adjusted as business rules develop.
+
+## DTOs
+
+Each entity has a DTO in `com.AgentOps.dto.request` and `com.AgentOps.dto.response`.
+Relationships are represented by IDs. Requests validate required fields, positive
+IDs, enum presence, email format, and applicable length limits. User requests
+accept a plaintext password (8–128 characters), which must be hashed by the service;
+passwords are write-only in JSON and user responses contain no password or hash.
+
+Approval requests contain the requester, action type, and target ID. The service
+must initialize the status to `PENDING` and manage approver and decision timestamps.
+Generated IDs and timestamps appear only in responses. Controllers must use
+`@Valid` on request bodies to trigger validation; authorization, referenced-record
+existence, unique emails, and workflow rules still require service-layer checks.
