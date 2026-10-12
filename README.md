@@ -61,3 +61,45 @@ must initialize the status to `PENDING` and manage approver and decision timesta
 Generated IDs and timestamps appear only in responses. Controllers must use
 `@Valid` on request bodies to trigger validation; authorization, referenced-record
 existence, unique emails, and workflow rules still require service-layer checks.
+
+## API errors
+
+`GlobalExceptionHandler` uses Spring `ProblemDetail` and returns
+`application/problem+json` with `title`, `status`, `detail`, `instance`
+(the request path), and `timestamp`. Validation failures also include an `errors`
+array of `{ "field": "email", "message": "Email must be valid" }` objects.
+Rejected values are omitted, and multiple failures for the same field are preserved.
+Spring omits the default `type`; its implied value is `about:blank` under RFC 9457.
+Handlers return `ProblemDetail` directly, with Spring deriving the HTTP status
+from it. Framework error headers are preserved explicitly. The custom advice
+handles MVC errors, so Boot's separate problem-details advice is not enabled.
+
+- `BadRequestException`: 400 for invalid business input.
+- `ForbiddenException`: 403 for operations the user is not allowed to perform.
+- `ResourceNotFoundException`: 404, for example `new ResourceNotFoundException("Order", orderId)`.
+- `ConflictException`: 409 for conflicts such as duplicate emails or invalid state transitions.
+- Database integrity and optimistic locking failures: 409 with generic details.
+- Unexpected exceptions: 500 with a generic response; the exception is logged server-side.
+
+Only put client-safe messages in custom exceptions. Spring MVC errors retain their
+HTTP statuses and headers, including malformed requests (400), missing routes (404),
+unsupported methods (405), and unsupported media types (415). Use `@Valid` on DTO
+request bodies to activate validation. The MVC tests use test-only routes; this
+change does not add application endpoints or authorization rules.
+
+## Tests
+
+Tests use JUnit Jupiter. `GlobalExceptionHandlerUnitTests` uses Mockito's
+`MockitoExtension`, `@Mock`, stubbing, and interaction verification to test error
+handling without starting Spring or connecting to PostgreSQL. The Spring Boot
+test starters provide JUnit and Mockito dependencies.
+
+Run the unit tests and DTO validation tests:
+
+```powershell
+.\mvnw.cmd "-Dtest=GlobalExceptionHandlerUnitTests,RequestValidationTests" test
+```
+
+`GlobalExceptionHandlerTests` tests HTTP responses through MockMvc. The full suite
+also includes application startup and persistence tests against the configured
+PostgreSQL database; run all tests with `.\mvnw.cmd test`.
