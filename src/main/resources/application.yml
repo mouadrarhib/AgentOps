@@ -11,3 +11,9 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: ${DB_DDL_AUTO:none}
+
+security:
+  jwt:
+    secret: ${JWT_SECRET}
+    issuer: ${JWT_ISSUER:agentops}
+    expiration-seconds: ${JWT_EXPIRATION_SECONDS:3600}

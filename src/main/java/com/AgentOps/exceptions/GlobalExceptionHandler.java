@@ -26,6 +26,16 @@ import java.util.Objects;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(org.springframework.security.core.AuthenticationException.class)
+    public ProblemDetail handleAuthentication(org.springframework.security.core.AuthenticationException exception) {
+        return problem(HttpStatus.UNAUTHORIZED, "Authentication failed.");
+    }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ProblemDetail handleAccessDenied(org.springframework.security.access.AccessDeniedException exception) {
+        return problem(HttpStatus.FORBIDDEN, "You do not have permission to perform this action.");
+    }
+
     private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
     private static final String INTERNAL_ERROR = "An unexpected error occurred. Please try again later.";
 

@@ -117,8 +117,69 @@ handles MVC errors, so Boot's separate problem-details advice is not enabled.
 Only put client-safe messages in custom exceptions. Spring MVC errors retain their
 HTTP statuses and headers, including malformed requests (400), missing routes (404),
 unsupported methods (405), and unsupported media types (415). Use `@Valid` on DTO
-request bodies to activate validation. The MVC tests use test-only routes; this
-change does not add application endpoints or authorization rules.
+request bodies to activate validation. The exception MVC tests use test-only routes
+with security filters disabled; authentication integration tests exercise the real filters.
+
+## JWT authentication
+
+Authentication follows `AuthController` → `AuthService` → `AuthServiceImpl` →
+`UserRepository`. Requests use validated DTOs, and responses never expose passwords
+or password hashes. Registration always assigns `CUSTOMER`; privileged roles must
+be assigned through a trusted administrative process. Email addresses are stored
+in lowercase and looked up without case sensitivity. Passwords use salted PBKDF2.
+
+Set `JWT_SECRET` in your ignored `.env` file to a Base64-encoded random key of at
+least 32 bytes. Generate a key before starting a fresh checkout. In PowerShell, run:
+
+```powershell
+$keyBytes = New-Object byte[] 32
+$random = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+$random.GetBytes($keyBytes)
+$random.Dispose()
+[Convert]::ToBase64String($keyBytes)
+```
+
+Copy the generated value into `JWT_SECRET=...`. Optional settings are
+`JWT_ISSUER=agentops` and `JWT_EXPIRATION_SECONDS=3600` (60–86400 seconds).
+Docker Compose passes these settings to the backend. Production requires its own
+secret; the fixed key in `src/test/resources/application.properties` is for tests
+only and is excluded from the application JAR. CI tests use that test configuration
+and do not require a JWT secret in GitHub.
+
+| Method | Endpoint | Access | Result |
+| --- | --- | --- | --- |
+| POST | `/api/auth/register` | Public | 201, token and user |
+| POST | `/api/auth/login` | Public | 200, token and user |
+| GET | `/api/auth/me` | Bearer token | 200, current user |
+
+Registration and login accept `{"email":"customer@example.com","password":"password123"}`.
+The authentication response contains `accessToken`, `tokenType` (`Bearer`),
+`expiresIn` (seconds), and `user` (`id`, `email`, `role`). For example:
+
+```powershell
+$body = @{ email = 'customer@example.com'; password = 'password123' } | ConvertTo-Json
+$auth = Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/auth/register -ContentType application/json -Body $body
+Invoke-RestMethod -Uri http://localhost:8080/api/auth/me -Headers @{ Authorization = "Bearer $($auth.accessToken)" }
+```
+
+Spring Security validates HS256 signatures, issuer, expiry, user ID, and role.
+Every other API endpoint requires authentication; Swagger documentation remains
+public and its **Authorize** button accepts the token. Role claims become
+`ROLE_CUSTOMER`, `ROLE_SUPPORT`, or `ROLE_ADMIN`; apply
+`@PreAuthorize("hasRole('ADMIN')")` where privileged access is required.
+
+Missing or invalid tokens and invalid credentials return 401 `ProblemDetail`;
+insufficient permissions return 403, duplicate emails 409, and invalid requests
+400 with field errors. Both security-filter errors and controller errors use
+`application/problem+json`. Authentication is stateless and uses no login session.
+Use HTTPS when serving the API outside localhost.
+
+Access tokens expire after the configured lifetime and use Spring Security's
+default clock-skew allowance. There is no refresh-token or logout/revocation
+endpoint yet. Role changes and account deletion do not revoke already-issued
+tokens; `/me` checks that the account still exists. Rotate the signing key to
+invalidate all issued tokens, or add a revocation mechanism if immediate
+per-account invalidation is required. Existing accounts need PBKDF2 hashes to log in.
 
 ## Tests
 
@@ -126,6 +187,12 @@ Tests use JUnit Jupiter. `GlobalExceptionHandlerUnitTests` uses Mockito's
 `MockitoExtension`, `@Mock`, stubbing, and interaction verification to test error
 handling without starting Spring or connecting to PostgreSQL. The Spring Boot
 test starters provide JUnit and Mockito dependencies.
+
+`AuthServiceImplTests` uses Mockito to verify password hashing, registration,
+duplicate handling, and login failures. `AuthIntegrationTests` uses PostgreSQL,
+MockMvc, and the actual security filters to verify signed tokens, expiry, tampering,
+issuer/claim validation, role restrictions, and authentication errors. Authentication
+integration test data is rolled back after each test.
 
 Run the unit tests and DTO validation tests:
 
