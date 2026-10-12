@@ -45,6 +45,9 @@ class GlobalExceptionHandlerUnitTests {
     @Mock
     private ParameterValidationResult parameterValidationResult;
 
+    @Mock
+    private MethodParameter methodParameter;
+
     @Test
     void preservesFrameworkProblemTypeAndEveryHeaderValue() {
         ErrorResponseException exception = new ErrorResponseException(HttpStatus.TOO_MANY_REQUESTS);
@@ -102,13 +105,11 @@ class GlobalExceptionHandlerUnitTests {
     }
 
     @Test
-    void includesParameterAndCrossParameterValidationFailures() throws NoSuchMethodException {
-        MethodParameter parameter = new MethodParameter(
-                GlobalExceptionHandlerUnitTests.class.getDeclaredMethod("request", Long.class), 0);
-        parameter.initParameterNameDiscovery(new org.springframework.core.DefaultParameterNameDiscoverer());
+    void includesParameterAndCrossParameterValidationFailures() {
         when(methodValidationException.getStatusCode()).thenReturn(HttpStatus.BAD_REQUEST);
         when(methodValidationException.getParameterValidationResults()).thenReturn(List.of(parameterValidationResult));
-        when(parameterValidationResult.getMethodParameter()).thenReturn(parameter);
+        when(parameterValidationResult.getMethodParameter()).thenReturn(methodParameter);
+        when(methodParameter.getParameterName()).thenReturn("id");
         when(parameterValidationResult.getResolvableErrors()).thenReturn(List.of(
                 new DefaultMessageSourceResolvable(new String[]{"Positive"}, null, "ID must be positive")));
         when(methodValidationException.getCrossParameterValidationResults()).thenReturn(List.of(
@@ -146,7 +147,4 @@ class GlobalExceptionHandlerUnitTests {
         assertFalse(problem.toString().contains("private-value"));
     }
 
-//     private void request(Long id) {
-//         // Provides a real method parameter for framework validation results.
-//     }
 }

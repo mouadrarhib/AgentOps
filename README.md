@@ -136,3 +136,34 @@ Run the unit tests and DTO validation tests:
 `GlobalExceptionHandlerTests` tests HTTP responses through MockMvc. The full suite
 also includes application startup and persistence tests against the configured
 PostgreSQL database; run all tests with `.\mvnw.cmd test`.
+
+## GitHub Actions CI/CD
+
+The workflow is `.github/workflows/ci-cd.yml`:
+
+- Pull requests targeting `main` run CI: Java 21 setup, all JUnit/Mockito and
+  PostgreSQL integration tests, Maven packaging, and a Docker image build.
+- Pushes to `main` run the same CI, then CD publishes the image to Docker Hub.
+- Manual runs execute CI only.
+
+CD declares `needs: ci` and explicitly requires a successful CI result. Failed,
+cancelled, or skipped CI cannot publish an image. CI uses a disposable PostgreSQL
+18 service with test-only credentials and `create-drop` schema management; it
+does not require your local database or Docker Hub secrets.
+
+In the GitHub repository, open **Settings → Secrets and variables → Actions**
+and add these repository secrets:
+
+| Secret | Value |
+| --- | --- |
+| `DOCKERHUB_USERNAME` | Your Docker Hub username |
+| `DOCKERHUB_PASSWORD` | Your Docker Hub password, or an access token if required by your account |
+
+Create an `agentops` repository under that Docker Hub account. To use another
+repository name, set the optional GitHub Actions variable `DOCKERHUB_REPOSITORY`
+to that name (without the username prefix).
+
+Successful publishing produces `<username>/agentops:latest` and
+`<username>/agentops:sha-<full-commit-sha>`. Test reports are saved as workflow
+artifacts, and Maven/Docker layers are cached between runs. CD currently publishes
+the image; deployment to a server can be added once hosting is selected.
