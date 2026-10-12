@@ -146,7 +146,7 @@ class GlobalExceptionHandlerUnitTests {
         assertFalse(problem.toString().contains("private-value"));
     }
 
-    private void request(Long id) {
-        // Provides a real method parameter for framework validation results.
-    }
+//     private void request(Long id) {
+//         // Provides a real method parameter for framework validation results.
+//     }
 }

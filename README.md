@@ -27,6 +27,39 @@ Run the tests:
 .\mvnw.cmd test
 ```
 
+## Docker
+
+Start Docker Desktop with Linux containers enabled. Use the existing root `.env`,
+or copy `.env.example` to `.env` and set `DB_PASSWORD`. Then run:
+
+```powershell
+docker compose up --build -d
+docker compose logs -f backend
+```
+
+The backend is available at `http://localhost:8080`, with API documentation at
+`http://localhost:8080/swagger-ui.html`. PostgreSQL is published on
+`localhost:5433`, so your existing local server on port 5432 can keep running.
+Change `BACKEND_PORT` or `POSTGRES_PORT` in `.env` if needed.
+
+Compose creates a separate `agentops` database in a named Docker volume and waits
+for PostgreSQL's health check before starting the backend. It overrides the
+backend database host and internal port to `database:5432`; your local `.env`
+values for `DB_HOST` and `DB_PORT` still work when running outside Docker.
+Database credentials come from `.env` and are injected at runtime; `.env` is
+excluded from the image build. The Java 21 image runs the app as a non-root user.
+
+`DB_DDL_AUTO=update` supports local development. Container builds skip test
+execution because the integration tests require a running database; run tests
+separately before building. Initialization variables such as the database name,
+username, and password apply when the Docker database volume is first created.
+
+Stop the containers while retaining database data:
+
+```powershell
+docker compose down
+```
+
 ## Data model
 
 Entities live in `com.AgentOps.entities`; enums live in `com.AgentOps.entities.enums`.
