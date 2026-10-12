@@ -13,7 +13,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "orders")
+@Table(name = "orders", indexes = @Index(name = "idx_orders_customer_id", columnList = "customer_id"))
 public class Order extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "customer_id", nullable = false)

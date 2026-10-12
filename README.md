@@ -213,6 +213,44 @@ and revoke **all** of the user's sessions, including the current one; log in aga
 with the new credentials after the successful 200 response. Roles and IDs cannot
 be changed through this endpoint. Incorrect current passwords return 401.
 
+## Orders
+
+Orders are persisted in PostgreSQL and exposed through `OrderController`,
+`OrderService`/`OrderServiceImpl`, and `OrderRepository`. Every endpoint requires
+an active bearer token and returns `OrderResponse` rather than the JPA entity.
+
+| Method | Endpoint | Behavior |
+| --- | --- | --- |
+| POST | `/orders` | Create a `PENDING` order; returns 201 and a `Location` header |
+| GET | `/orders?page=0&size=20` | List orders visible to the current user |
+| GET | `/orders/{orderId}` | Read one visible order |
+
+Customers create their own orders with `{}` or `{"customerId":123}` where the ID
+is their own. Creating an order for someone else returns 403. SUPPORT and ADMIN
+can create orders for customers by supplying `customerId`; the target must exist
+and have the CUSTOMER role. Missing customers return 404 and staff accounts
+cannot own orders. The creation endpoint uses `CreateOrderRequest`; order status
+is assigned by the service and always starts as `PENDING`.
+
+Customers can list and retrieve only their own orders. SUPPORT and ADMIN can
+list and retrieve all orders. Inaccessible and nonexistent order IDs both return
+404, so a customer cannot determine whether another customer's order exists.
+Ownership filters are applied in the database before pagination and counting.
+
+List responses contain `content`, `page`, `size`, `totalElements`, and `totalPages`.
+Pages start at zero; size defaults to 20 and must be between 1 and 100. Results
+are sorted by `createdAt` descending, then `id` descending. Each order contains
+`id`, `customerId`, `status`, `createdAt`, and `updatedAt`. Empty lists and pages
+beyond the last page return 200 with empty `content`. Invalid IDs, pagination, or
+JSON return 400 `ProblemDetail`; unauthenticated requests return 401.
+
+```powershell
+$headers = @{ Authorization = "Bearer $($auth.accessToken)" }
+$order = Invoke-RestMethod -Method Post -Uri http://localhost:8080/orders -Headers $headers -ContentType application/json -Body '{}'
+Invoke-RestMethod -Uri http://localhost:8080/orders -Headers $headers
+Invoke-RestMethod -Uri "http://localhost:8080/orders/$($order.id)" -Headers $headers
+```
+
 ## User helpers
 
 Inject `UserHelper` from `com.AgentOps.helpers` to reuse `getUserById`,
@@ -246,6 +284,10 @@ integration test data is rolled back after each test; the concurrent refresh tes
 uses committed transactions and explicitly removes its account afterward. Tests
 also cover refresh rotation/replay, concurrent refresh, logout isolation, partial
 profile updates, and session invalidation after password changes.
+
+`OrderServiceImplTests` uses Mockito to verify ownership filtering and creation
+rules. `OrderIntegrationTests` exercises real JWT filters and PostgreSQL persistence
+for customer isolation, staff access, pagination, validation, and API responses.
 
 Run the unit tests and DTO validation tests:
 
