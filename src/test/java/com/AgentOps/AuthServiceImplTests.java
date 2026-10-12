@@ -6,7 +6,9 @@ import com.AgentOps.entities.enums.UserRole;
 import com.AgentOps.exceptions.*;
 import com.AgentOps.helpers.UserHelper;
 import com.AgentOps.repositories.UserRepository;
-import com.AgentOps.security.JwtService;
+import com.AgentOps.services.AuthSessionService;
+import com.AgentOps.dto.response.AuthResponse;
+import com.AgentOps.dto.response.UserResponse;
 import com.AgentOps.services.servicesImp.AuthServiceImpl;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,13 +26,13 @@ import static org.mockito.Mockito.*;
 class AuthServiceImplTests {
     @Mock UserRepository users;
     @Mock PasswordEncoder passwords;
-    @Mock JwtService tokens;
+    @Mock AuthSessionService sessions;
     AuthServiceImpl service;
 
     @BeforeEach
     void setup() {
         when(passwords.encode("unused-account-timing-comparison")).thenReturn("dummy-hash");
-        service = new AuthServiceImpl(users, new UserHelper(users), passwords, tokens);
+        service = new AuthServiceImpl(users, new UserHelper(users), passwords, sessions);
     }
 
     @Test
@@ -41,8 +43,7 @@ class AuthServiceImplTests {
             ReflectionTestUtils.setField(user, "id", 42L);
             return user;
         });
-        when(tokens.generateToken(any())).thenReturn("signed-token");
-        when(tokens.expirationSeconds()).thenReturn(3600L);
+        when(sessions.createSession(any())).thenReturn(authResponse(user()));
         var result = service.register(new RegisterRequest("Person@Example.com", "password123"));
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(users).saveAndFlush(captor.capture());
@@ -72,27 +73,27 @@ class AuthServiceImplTests {
     @Test
     void validLoginIssuesToken() {
         User user = user();
-        when(users.findByEmailIgnoreCase("person@example.com")).thenReturn(Optional.of(user));
+        when(users.findForUpdateByEmail("person@example.com")).thenReturn(Optional.of(user));
         when(passwords.matches("password123", "stored-hash")).thenReturn(true);
-        when(tokens.generateToken(user)).thenReturn("signed-token");
+        when(sessions.createSession(user)).thenReturn(authResponse(user));
         assertEquals("signed-token", service.login(new LoginRequest("PERSON@example.com", "password123")).accessToken());
     }
 
     @Test
     void unknownAccountStillPerformsPasswordComparison() {
-        when(users.findByEmailIgnoreCase("unknown@example.com")).thenReturn(Optional.empty());
+        when(users.findForUpdateByEmail("unknown@example.com")).thenReturn(Optional.empty());
         assertThrows(InvalidCredentialsException.class,
                 () -> service.login(new LoginRequest("unknown@example.com", "password123")));
         verify(passwords).matches("password123", "dummy-hash");
-        verifyNoInteractions(tokens);
+        verifyNoInteractions(sessions);
     }
 
     @Test
     void wrongPasswordDoesNotIssueToken() {
-        when(users.findByEmailIgnoreCase("person@example.com")).thenReturn(Optional.of(user()));
+        when(users.findForUpdateByEmail("person@example.com")).thenReturn(Optional.of(user()));
         assertThrows(InvalidCredentialsException.class,
                 () -> service.login(new LoginRequest("person@example.com", "wrong-password")));
-        verifyNoInteractions(tokens);
+        verifyNoInteractions(sessions);
     }
 
     @Test
@@ -101,6 +102,33 @@ class AuthServiceImplTests {
         assertEquals("person@example.com", service.currentUser("42").getEmail());
         assertThrows(UnauthorizedException.class, () -> service.currentUser("unknown"));
         assertThrows(UnauthorizedException.class, () -> service.currentUser("43"));
+    }
+
+    @Test
+    void profilePasswordChangeChecksCurrentPasswordAndRevokesAllSessions() {
+        User user = user();
+        when(users.findForUpdateById(42L)).thenReturn(Optional.of(user));
+        when(passwords.matches("password123", "stored-hash")).thenReturn(true);
+        when(passwords.encode("new-password123")).thenReturn("new-hash");
+        var response = service.updateProfile("42", new UpdateProfileRequest(null, "new-password123", "password123"));
+        assertEquals("person@example.com", response.getEmail());
+        assertEquals("new-hash", user.getPasswordHash());
+        verify(users).saveAndFlush(user);
+        verify(sessions).revokeUserSessions(42L);
+    }
+
+    @Test
+    void profileUpdateWithIncorrectCurrentPasswordDoesNotSave() {
+        when(users.findForUpdateById(42L)).thenReturn(Optional.of(user()));
+        assertThrows(InvalidCredentialsException.class, () -> service.updateProfile("42",
+                new UpdateProfileRequest("other@example.com", null, "incorrect")));
+        verify(users, never()).saveAndFlush(any());
+        verifyNoInteractions(sessions);
+    }
+
+    private AuthResponse authResponse(User user) {
+        return new AuthResponse("signed-token", "Bearer", 3600, "refresh-token", 604800,
+                new UserResponse(user.getId(), user.getEmail(), user.getRole()));
     }
 
     private User user() {

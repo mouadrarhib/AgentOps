@@ -17,3 +17,5 @@ security:
     secret: ${JWT_SECRET}
     issuer: ${JWT_ISSUER:agentops}
     expiration-seconds: ${JWT_EXPIRATION_SECONDS:3600}
+  refresh-token:
+    expiration-seconds: ${REFRESH_TOKEN_EXPIRATION_SECONDS:604800}

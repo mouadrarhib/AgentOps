@@ -17,12 +17,17 @@ public class JwtService {
         this.properties = properties;
     }
 
-    public String generateToken(User user) {
+    public String generateToken(User user, Long sessionId, Instant sessionExpiresAt) {
         Instant now = Instant.now();
+        Instant expiresAt = now.plusSeconds(properties.expirationSeconds());
+        if (sessionExpiresAt.isBefore(expiresAt)) {
+            expiresAt = sessionExpiresAt;
+        }
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer(properties.issuer()).subject(user.getId().toString())
-                .issuedAt(now).expiresAt(now.plusSeconds(properties.expirationSeconds()))
-                .id(UUID.randomUUID().toString()).claim("role", user.getRole().name()).build();
+                .issuedAt(now).expiresAt(expiresAt)
+                .id(UUID.randomUUID().toString()).claim("role", user.getRole().name())
+                .claim("sid", sessionId.toString()).build();
         return encoder.encode(JwtEncoderParameters.from(
                 JwsHeader.with(MacAlgorithm.HS256).type("JWT").build(), claims)).getTokenValue();
     }

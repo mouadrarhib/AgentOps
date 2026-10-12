@@ -141,6 +141,8 @@ $random.Dispose()
 
 Copy the generated value into `JWT_SECRET=...`. Optional settings are
 `JWT_ISSUER=agentops` and `JWT_EXPIRATION_SECONDS=3600` (60–86400 seconds).
+`REFRESH_TOKEN_EXPIRATION_SECONDS=604800` configures the refresh/session lifetime
+(3600–2592000 seconds, seven days by default).
 Docker Compose passes these settings to the backend. Production requires its own
 secret; the fixed key in `src/test/resources/application.properties` is for tests
 only and is excluded from the application JAR. CI tests use that test configuration
@@ -151,10 +153,14 @@ and do not require a JWT secret in GitHub.
 | POST | `/api/auth/register` | Public | 201, token and user |
 | POST | `/api/auth/login` | Public | 200, token and user |
 | GET | `/api/auth/me` | Bearer token | 200, current user |
+| PATCH | `/api/auth/me` | Bearer token + current password | 200, updated user |
+| POST | `/api/auth/refresh` | Refresh token in JSON body | 200, replacement tokens and user |
+| POST | `/api/auth/logout` | Bearer token | 204, current session revoked |
 
 Registration and login accept `{"email":"customer@example.com","password":"password123"}`.
 The authentication response contains `accessToken`, `tokenType` (`Bearer`),
-`expiresIn` (seconds), and `user` (`id`, `email`, `role`). For example:
+`expiresIn` (seconds), `refreshToken`, `refreshExpiresIn` (seconds), and `user`
+(`id`, `email`, `role`). For example:
 
 ```powershell
 $body = @{ email = 'customer@example.com'; password = 'password123' } | ConvertTo-Json
@@ -171,15 +177,41 @@ public and its **Authorize** button accepts the token. Role claims become
 Missing or invalid tokens and invalid credentials return 401 `ProblemDetail`;
 insufficient permissions return 403, duplicate emails 409, and invalid requests
 400 with field errors. Both security-filter errors and controller errors use
-`application/problem+json`. Authentication is stateless and uses no login session.
+`application/problem+json`. No HTTP session or authentication cookie is created.
+Authentication sessions are persisted in `auth_sessions`, associated with users;
+each bearer request checks that its session is active and its role still matches
+the account. This database lookup makes logout and account deletion effective
+for existing access tokens. JWTs issued before this change lack a session ID and
+require a new login.
 Use HTTPS when serving the API outside localhost.
 
 Access tokens expire after the configured lifetime and use Spring Security's
-default clock-skew allowance. There is no refresh-token or logout/revocation
-endpoint yet. Role changes and account deletion do not revoke already-issued
-tokens; `/me` checks that the account still exists. Rotate the signing key to
-invalidate all issued tokens, or add a revocation mechanism if immediate
-per-account invalidation is required. Existing accounts need PBKDF2 hashes to log in.
+default clock-skew allowance, bounded by the session's absolute expiry.
+Existing accounts need PBKDF2 hashes to log in. The new `auth_sessions` table must
+exist: local `DB_DDL_AUTO=update` creates it, while deployments using `none` or
+`validate` need the corresponding schema change before starting the application.
+
+Send `{"refreshToken":"..."}` to `/api/auth/refresh` without an Authorization
+header; no unexpired access token is needed. Refresh tokens use 32 random bytes;
+only SHA-256 hashes are stored. Each successful refresh replaces the refresh
+token, and the previous one returns 401. Save both returned tokens on the client.
+Rotation is serialized with a database row lock, so concurrent attempts cannot
+both consume the same token. Rotation preserves the session's original expiry;
+revoked and expired tokens return the same safe 401 error. Rotation does not revoke
+existing access tokens in that session; logout revokes all access and refresh
+tokens belonging to the current session. Other login sessions remain active.
+The client should discard its stored tokens after logout. Old revoked/expired
+session rows are retained; periodic cleanup can be added when needed.
+
+`PATCH /api/auth/me` accepts optional `email` and `password` fields, with at least
+one required, plus required `currentPassword`. Omitted/null fields remain unchanged.
+For example, `{"email":"new@example.com","currentPassword":"password123"}`
+changes the email, and `{"password":"new-password123","currentPassword":"password123"}`
+changes the password. Email updates preserve sessions, normalize the new email,
+and reject duplicate addresses with 409. Password updates store a new PBKDF2 hash
+and revoke **all** of the user's sessions, including the current one; log in again
+with the new credentials after the successful 200 response. Roles and IDs cannot
+be changed through this endpoint. Incorrect current passwords return 401.
 
 ## User helpers
 
@@ -210,7 +242,10 @@ test starters provide JUnit and Mockito dependencies.
 duplicate handling, and login failures. `AuthIntegrationTests` uses PostgreSQL,
 MockMvc, and the actual security filters to verify signed tokens, expiry, tampering,
 issuer/claim validation, role restrictions, and authentication errors. Authentication
-integration test data is rolled back after each test.
+integration test data is rolled back after each test; the concurrent refresh test
+uses committed transactions and explicitly removes its account afterward. Tests
+also cover refresh rotation/replay, concurrent refresh, logout isolation, partial
+profile updates, and session invalidation after password changes.
 
 Run the unit tests and DTO validation tests:
 

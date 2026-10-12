@@ -27,4 +27,22 @@ public class AuthController {
     @GetMapping("/me")
     @SecurityRequirement(name = "bearerAuth")
     public UserResponse me(@AuthenticationPrincipal Jwt jwt) { return auth.currentUser(jwt.getSubject()); }
+
+    @PostMapping("/refresh")
+    public AuthResponse refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        return auth.refresh(request);
+    }
+
+    @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @SecurityRequirement(name = "bearerAuth")
+    public void logout(@AuthenticationPrincipal Jwt jwt) {
+        auth.logout(jwt.getSubject(), jwt.getClaimAsString("sid"));
+    }
+
+    @PatchMapping("/me")
+    @SecurityRequirement(name = "bearerAuth")
+    public UserResponse updateMe(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody UpdateProfileRequest request) {
+        return auth.updateProfile(jwt.getSubject(), request);
+    }
 }

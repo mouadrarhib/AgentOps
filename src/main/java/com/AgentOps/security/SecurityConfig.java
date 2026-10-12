@@ -24,7 +24,7 @@ import java.util.Base64;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-@EnableConfigurationProperties(JwtProperties.class)
+@EnableConfigurationProperties({JwtProperties.class, RefreshTokenProperties.class})
 public class SecurityConfig {
     @Bean
     PasswordEncoder passwordEncoder() {
@@ -51,7 +51,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    JwtDecoder jwtDecoder(SecretKey jwtSecretKey, JwtProperties properties) {
+    JwtDecoder jwtDecoder(SecretKey jwtSecretKey, JwtProperties properties, SessionJwtValidator sessions) {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(jwtSecretKey)
                 .macAlgorithm(MacAlgorithm.HS256).build();
         decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
@@ -64,7 +64,7 @@ public class SecurityConfig {
                 new JwtClaimValidator<String>("role", value -> {
                     try { return value != null && UserRole.valueOf(value) != null; }
                     catch (IllegalArgumentException exception) { return false; }
-                })));
+                }), sessions));
         return decoder;
     }
 
@@ -81,7 +81,7 @@ public class SecurityConfig {
                 .httpBasic(basic -> basic.disable()).formLogin(form -> form.disable()).logout(logout -> logout.disable())
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/refresh").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(errors -> errors.authenticationEntryPoint(problems).accessDeniedHandler(problems))
