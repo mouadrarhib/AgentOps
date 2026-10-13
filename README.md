@@ -152,10 +152,11 @@ and do not require a JWT secret in GitHub.
 | --- | --- | --- | --- |
 | POST | `/api/auth/register` | Public | 201, token and user |
 | POST | `/api/auth/login` | Public | 200, token and user |
-| GET | `/api/auth/me` | Bearer token | 200, current user |
-| PATCH | `/api/auth/me` | Bearer token + current password | 200, updated user |
-| POST | `/api/auth/refresh` | Refresh token in JSON body | 200, replacement tokens and user |
-| POST | `/api/auth/logout` | Bearer token | 204, current session revoked |
+| GET | `/api/auth/me` | Access cookie or Bearer token | 200, current user |
+| PATCH | `/api/auth/me` | Access cookie or Bearer token + current password | 200, updated user |
+| POST | `/api/auth/refresh` | Refresh cookie (no body) or refresh token in JSON body | 200, replacement tokens and user |
+| POST | `/api/auth/logout` | Access cookie or Bearer token | 204, current session revoked |
+| GET | `/api/auth/csrf` | None | 200, CSRF token and header name |
 
 Registration and login accept `{"email":"customer@example.com","password":"password123"}`.
 The authentication response contains `accessToken`, `tokenType` (`Bearer`),
@@ -200,8 +201,39 @@ both consume the same token. Rotation preserves the session's original expiry;
 revoked and expired tokens return the same safe 401 error. Rotation does not revoke
 existing access tokens in that session; logout revokes all access and refresh
 tokens belonging to the current session. Other login sessions remain active.
-The client should discard its stored tokens after logout. Old revoked/expired
+Logout clears the authentication cookies; password changes also clear them.
+Clients using JSON tokens should discard their stored tokens after logout. Old revoked/expired
 session rows are retained; periodic cleanup can be added when needed.
+
+### Cookie authentication in Postman
+
+Import `docs/postman-cookie-auth.json`. Set the collection variables `email` and
+`password` to your registered account and keep `baseUrl=http://localhost:8080`
+(or change it to your API URL). Send **Login**, then **Current user** or any other
+request. Postman's cookie jar saves and sends the cookies automatically; leave
+Authorization set to **No Auth**. Use the same hostname consistently, since
+`localhost` and `127.0.0.1` have separate cookie jars. Keep the cookie jar enabled.
+Do not share/export a collection containing your real password.
+
+Register, login, and refresh set `AGENTOPS_ACCESS` (path `/`) and
+`AGENTOPS_REFRESH` (path `/api/auth`). Both are HttpOnly, host-only, and
+SameSite=Strict, with lifetimes matching their tokens. Set
+`AUTH_COOKIE_SECURE=true` when serving over HTTPS; the local HTTP default is false.
+The existing JSON response and Bearer authentication remain available. An explicit
+Authorization header takes precedence over the access cookie.
+
+Cookie-authenticated POST/PATCH/PUT/DELETE requests need CSRF protection. The
+collection's pre-request script automatically calls `GET /api/auth/csrf`, which
+sets the `XSRF-TOKEN` cookie, then sends the returned token in `X-XSRF-TOKEN`.
+If adding requests to another collection, copy that pre-request script as well.
+Requests using only an explicit Bearer token do not require CSRF. Refresh requests
+carrying the refresh cookie still require CSRF even with an Authorization header.
+
+When the access cookie expires, send **Refresh** (`POST /api/auth/refresh`, no
+body and no Authorization header); the refresh cookie rotates both cookies.
+Refresh is explicit, not automatic. **Logout** revokes the current session and
+deletes both authentication cookies. Refresh and login ignore stale access cookies
+so they still work after access-token expiry.
 
 `PATCH /api/auth/me` accepts optional `email` and `password` fields, with at least
 one required, plus required `currentPassword`. Omitted/null fields remain unchanged.

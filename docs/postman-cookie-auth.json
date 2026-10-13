@@ -1,0 +1,63 @@
+{
+  "info": {
+    "name": "AgentOps - Cookie Authentication",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": { "type": "noauth" },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "email", "value": "your-email@example.com" },
+    { "key": "password", "value": "your-password" }
+  ],
+  "event": [{
+    "listen": "prerequest",
+    "script": {
+      "type": "text/javascript",
+      "exec": [
+        "if (!['GET', 'HEAD', 'OPTIONS'].includes(pm.request.method)) {",
+        "  const baseUrl = pm.variables.replaceIn('{{baseUrl}}').replace(/\\/$/, '');",
+        "  pm.sendRequest(baseUrl + '/api/auth/csrf', (error, response) => {",
+        "    if (error || response.code !== 200) {",
+        "      pm.execution.skipRequest();",
+        "      throw new Error('Could not obtain the CSRF token. Check baseUrl and the backend.');",
+        "    }",
+        "    const csrf = response.json();",
+        "    pm.request.headers.upsert({ key: csrf.headerName, value: csrf.token });",
+        "  });",
+        "}"
+      ]
+    }
+  }],
+  "item": [
+    {
+      "name": "Login (saves cookies automatically)",
+      "request": {
+        "method": "POST", "url": "{{baseUrl}}/api/auth/login",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}" }
+      }
+    },
+    {
+      "name": "Current user", "request": { "method": "GET", "url": "{{baseUrl}}/api/auth/me" }
+    },
+    {
+      "name": "List orders", "request": { "method": "GET", "url": "{{baseUrl}}/orders" }
+    },
+    {
+      "name": "Create order",
+      "request": {
+        "method": "POST", "url": "{{baseUrl}}/orders",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{}" }
+      }
+    },
+    {
+      "name": "Refresh (rotates cookies, no body)",
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/auth/refresh" }
+    },
+    {
+      "name": "Logout (clears cookies)",
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/auth/logout" }
+    }
+  ]
+}

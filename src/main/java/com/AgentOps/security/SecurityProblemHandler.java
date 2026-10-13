@@ -24,7 +24,7 @@ public class SecurityProblemHandler implements AuthenticationEntryPoint, AccessD
     public void commence(HttpServletRequest request, HttpServletResponse response,
                          AuthenticationException exception) throws IOException {
         response.setHeader(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
-        write(request, response, HttpStatus.UNAUTHORIZED, "A valid bearer token is required.");
+        write(request, response, HttpStatus.UNAUTHORIZED, "A valid access token is required.");
     }
 
     @Override

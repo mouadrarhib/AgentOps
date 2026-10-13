@@ -3,6 +3,12 @@ package com.AgentOps.security;
 import com.AgentOps.entities.enums.UserRole;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import jakarta.servlet.DispatcherType;
+import org.springframework.http.HttpHeaders;
+import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.*;
 import org.springframework.http.HttpMethod;
@@ -69,13 +75,39 @@ public class SecurityConfig {
     }
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, SecurityProblemHandler problems) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, SecurityProblemHandler problems, JwtDecoder decoder,
+            @org.springframework.beans.factory.annotation.Value("${security.cookies.secure:false}") boolean secureCookies) throws Exception {
+        DefaultBearerTokenResolver bearer = new DefaultBearerTokenResolver();
+        CookieCsrfTokenRepository csrfCookies = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        csrfCookies.setCookieCustomizer(cookie -> cookie.path("/").sameSite("Strict").secure(secureCookies));
         JwtGrantedAuthoritiesConverter authorities = new JwtGrantedAuthoritiesConverter();
         authorities.setAuthoritiesClaimName("role");
         authorities.setAuthorityPrefix("ROLE_");
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(authorities);
-        return http.csrf(csrf -> csrf.disable())
+        JwtAuthenticationProvider provider = new JwtAuthenticationProvider(decoder);
+        provider.setJwtAuthenticationConverter(converter);
+        BearerTokenAuthenticationFilter tokens = new BearerTokenAuthenticationFilter(new ProviderManager(provider));
+        tokens.setAuthenticationEntryPoint(problems);
+        tokens.setBearerTokenResolver(request -> {
+            if (request.getHeader(HttpHeaders.AUTHORIZATION) != null) return bearer.resolve(request);
+            if (java.util.Set.of("/api/auth/login", "/api/auth/register", "/api/auth/refresh", "/api/auth/csrf")
+                    .contains(request.getRequestURI().substring(request.getContextPath().length()))) return null;
+            return AuthCookies.read(request, AuthCookies.ACCESS);
+        });
+        return http.csrf(csrf -> csrf
+                        .csrfTokenRepository(csrfCookies)
+                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
+                        .requireCsrfProtectionMatcher(request -> {
+                            boolean unsafe = !java.util.Set.of("GET", "HEAD", "OPTIONS", "TRACE").contains(request.getMethod());
+                            boolean cookieCredentials = AuthCookies.read(request, AuthCookies.ACCESS) != null
+                                    || AuthCookies.read(request, AuthCookies.REFRESH) != null;
+                            // A refresh without a body always uses the refresh cookie, even with a Bearer header.
+                            boolean cookieRefresh = "/api/auth/refresh".equals(request.getRequestURI().substring(request.getContextPath().length()))
+                                    && AuthCookies.read(request, AuthCookies.REFRESH) != null;
+                            return unsafe && cookieCredentials
+                                    && (request.getHeader(HttpHeaders.AUTHORIZATION) == null || cookieRefresh);
+                        }))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .requestCache(cache -> cache.disable())
                 .httpBasic(basic -> basic.disable()).formLogin(form -> form.disable()).logout(logout -> logout.disable())
@@ -83,10 +115,12 @@ public class SecurityConfig {
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/refresh").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(errors -> errors.authenticationEntryPoint(problems).accessDeniedHandler(problems))
-                .oauth2ResourceServer(resource -> resource.authenticationEntryPoint(problems).accessDeniedHandler(problems)
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(converter)))
+                // Install the JWT filter directly: the resource-server DSL automatically exempts
+                // every resolved token from CSRF, which would also exempt our JWT cookies.
+                .addFilterAt(tokens, BearerTokenAuthenticationFilter.class)
                 .build();
     }
 }
