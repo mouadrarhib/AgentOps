@@ -11,7 +11,7 @@ import org.hibernate.annotations.CreationTimestamp;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "conversations")
+@Table(name = "conversations", indexes = @Index(name = "idx_conversations_user_id", columnList = "user_id"))
 public class Conversation extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
@@ -20,4 +20,10 @@ public class Conversation extends BaseEntity {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    @Column(name = "processing_token", length = 36)
+    private String processingToken;
+
+    @Column(name = "processing_started_at")
+    private Instant processingStartedAt;
 }

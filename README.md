@@ -310,6 +310,110 @@ The ticket table now includes `priority` (default `NORMAL`), nullable
 assignee. Local `DB_DDL_AUTO=update` applies these changes and defaults existing
 rows. Deployments using `none` or `validate` must apply these schema changes first.
 
+## AI agent and conversations
+
+The Spring Boot agent uses DeepSeek's non-streaming
+[Chat Completions API](https://api-docs.deepseek.com/api/create-chat-completion/)
+and [tool-call protocol](https://api-docs.deepseek.com/guides/tool_calls/).
+Set `DEEPSEEK_API_KEY` in the ignored `.env` file to enable live chat. The backend
+and other endpoints can start without it; chat returns 503 while the key is blank.
+Never put the key in client requests or commit it. Docker Compose forwards the
+DeepSeek settings to the backend. Conversation text and authorized tool results
+are sent to DeepSeek to generate replies.
+
+| Setting | Default |
+| --- | --- |
+| `DEEPSEEK_BASE_URL` | `https://api.deepseek.com` |
+| `DEEPSEEK_MODEL` | `deepseek-flash` |
+| `DEEPSEEK_TIMEOUT_SECONDS` | `30` per provider request |
+| `DEEPSEEK_MAX_OUTPUT_TOKENS` | `2048` |
+| `AGENT_MAX_TOOL_ROUNDS` | `4` |
+| `AGENT_MAX_TOOL_CALLS` | `8` total per chat turn |
+| `AGENT_CONTEXT_MESSAGES` | `40` recent messages |
+
+The model is configurable; thinking is disabled for this tool loop. Provider
+requests have timeouts and are not automatically retried. API redirects are not
+followed, so credentials are never forwarded to a redirect target.
+
+| Method | Endpoint | Behavior |
+| --- | --- | --- |
+| POST | `/agent/chat` | Send a message and receive the AI reply |
+| GET | `/agent/conversations` | Paginated list of the current user's conversations |
+| GET | `/agent/conversations/{conversationId}` | Conversation metadata and paginated messages |
+
+All routes require an active bearer token. Start a conversation with:
+
+```json
+{"message":"Where is my order 123?"}
+```
+
+Continue it using the returned ID:
+
+```json
+{"conversationId":42,"message":"Create a delivery support ticket for that order."}
+```
+
+Messages must be nonblank and at most 4000 characters. Clients cannot choose
+message roles, conversation owners, provider settings, or a system prompt.
+Chat returns `conversationId`, `reply` (a `MessageResponse`), and `toolCalls`.
+Conversations are private to their owner, including against other ADMIN/SUPPORT
+users; missing and inaccessible conversations both return 404. Conversation
+lists use `content`, `page`, `size`, `totalElements`, and `totalPages`, newest
+first. Details use `conversation`, `messages`, and the same pagination metadata,
+with messages in chronological order. Defaults are 20 conversations or 50 messages;
+pages start at zero and sizes are limited to 1–100.
+
+The backend exposes a fixed allowlist:
+
+| Tool | Arguments | Access |
+| --- | --- | --- |
+| `get_order` | `orderId` | Authorized order only |
+| `list_orders` | Optional `page`, `size` | Visible orders only |
+| `get_ticket` | `ticketId` | Authorized ticket only |
+| `list_tickets` | Optional ticket filters, `page`, `size` | Visible tickets only |
+| `create_ticket` | `orderId`, `category` | Customer's own order, or staff on behalf of a customer |
+| `update_ticket` | `ticketId` plus status, priority, assignment/unassignment | SUPPORT/ADMIN only |
+
+AI tool pages are capped at 20 rows. Tool names, allowed argument names, JSON
+types, positive IDs, enum values, bounds, and DTO validators are checked before
+dispatch. String IDs, fractions, unknown fields, unknown tools, and conflicting
+assignments are rejected. Tools invoke the existing order/ticket services under
+the caller's authentication, so model instructions cannot bypass ownership or
+staff permissions. The staff update tool is also hidden from customer tool lists.
+The system instructions require explicit user intent before ticket creation or
+updates.
+
+Each actual tool execution is recorded in `tool_audit` with the caller, tool name,
+validated argument summary, and SUCCESS/FAILURE/DENIED status. Rejected raw
+arguments are not stored. Tool errors are sent back to the model with safe details,
+and successful identical write calls within a single turn reuse the first result
+to avoid duplicate tickets. The agent cannot execute SQL, arbitrary URLs, code,
+order changes, user changes, or approvals.
+
+User messages are saved before contacting the provider, and completed assistant
+replies are saved afterward. Intermediate tool-call protocol messages stay in the
+current request; tool executions remain in the audit table. Follow-up context uses
+recent user/assistant messages, capped at 64000 characters; complete conversation
+history remains available through paginated reads. Successful backend tools are
+committed independently of the final model reply. A later provider failure does
+not undo a created or updated ticket: check existing records before retrying a
+write request. There are no automatic retries across HTTP chat requests.
+
+Database transactions are short and do not span DeepSeek network requests.
+A persisted turn token serializes replies to one conversation; overlapping chat
+turns return 409. Provider failures clear the token, and a stale token can be
+reclaimed after the configured provider/tool budget plus a recovery allowance.
+Conversation rows add nullable `processing_token` and `processing_started_at`
+columns, plus conversation/message lookup indexes. Local `DB_DDL_AUTO=update`
+applies these schema changes; `none`/`validate` deployments require a schema update.
+
+Invalid input returns 400 `ProblemDetail`; provider failures or malformed/truncated
+replies return 502, provider rate limits or missing configuration return 503, and
+provider timeouts return 504. Provider error bodies and credentials are never
+included in these responses. Exceeding the tool budget returns 502 without executing
+additional calls. Live DeepSeek availability and account credentials are external
+requirements; automated tests use a local HTTP provider stub and no paid calls.
+
 ## User helpers
 
 Inject `UserHelper` from `com.AgentOps.helpers` to reuse `getUserById`,
@@ -351,6 +455,14 @@ for customer isolation, staff access, pagination, validation, and API responses.
 staff permissions, filtered pagination, assignments, partial updates, validation,
 and concurrent-update conflicts. The concurrency test explicitly cleans up its
 committed rows; other ticket integration tests roll their data back.
+`AgentToolExecutorTests` uses Mockito to check tool allowlisting, strict validation,
+service dispatch, and auditing. `AgentIntegrationTests` runs the real DeepSeek HTTP
+adapter against a local stub, with JWT security and PostgreSQL, to verify multi-turn
+history, privacy, tool results, ticket writes, denied actions, duplicate-write
+protection, provider failures, conversation locking, and execution limits.
+One agent integration test uses committed transactions to verify that successful
+ticket changes and audit records survive a later provider failure, then cleans up
+its records explicitly. The other agent integration tests roll their data back.
 
 Run the unit tests and DTO validation tests:
 
