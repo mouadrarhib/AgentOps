@@ -251,6 +251,65 @@ Invoke-RestMethod -Uri http://localhost:8080/orders -Headers $headers
 Invoke-RestMethod -Uri "http://localhost:8080/orders/$($order.id)" -Headers $headers
 ```
 
+## Support tickets
+
+Ticket APIs use `TicketController`, `TicketService`/`TicketServiceImpl`, and
+`TicketRepository`. All endpoints require an active bearer token.
+
+| Method | Endpoint | Behavior |
+| --- | --- | --- |
+| POST | `/tickets` | Create a ticket for an authorized order; returns 201 and `Location` |
+| GET | `/tickets` | List visible tickets with optional filters and pagination |
+| GET | `/tickets/{ticketId}` | Read one visible ticket |
+| PATCH | `/tickets/{ticketId}` | Staff update of status, priority, or assignment |
+
+Create with `{"orderId":123,"category":"DELIVERY"}`. `orderId` must be positive
+and `category` is required. The service derives the customer from the order and
+sets status to `OPEN`, priority to `NORMAL`, and assignment to null. Customers
+can create tickets only for their own orders; SUPPORT and ADMIN can create them
+for any customer order. Missing or inaccessible orders return 404.
+
+Customers see only their own tickets. SUPPORT and ADMIN see all tickets and can
+patch them. Inaccessible and nonexistent ticket IDs both return 404. Customer
+patch requests return 403. Filters are applied together with visibility in the
+database before pagination and counting; filtering by another customer cannot
+expose that customer's tickets.
+
+Optional query filters are `status`, `priority`, `category`, `orderId`, `customerId`,
+`assignedToId`, and `unassigned` (`true` for unassigned, `false` for assigned).
+For example, `/tickets?status=OPEN&priority=HIGH&unassigned=true&page=0&size=20`.
+All supplied filters are combined with AND. Supplying both an assignee and
+`unassigned=true` returns 400. Paging starts at zero, defaults to 20 rows, and
+allows sizes 1–100. Results are sorted by ID descending and contain `content`,
+`page`, `size`, `totalElements`, and `totalPages`.
+
+Patch examples:
+
+```json
+{"status":"IN_PROGRESS","priority":"HIGH","assignedToId":7}
+```
+
+```json
+{"unassign":true}
+```
+
+Omitted/null update fields remain unchanged. At least one change is required;
+assignment and `unassign=true` cannot be combined. Assignees must be existing
+SUPPORT or ADMIN accounts. Ticket ownership, order, and category cannot be changed
+through PATCH. Responses include `id`, `orderId`, `customerId`, `category`, `status`,
+`priority`, and `assignedToId`, without exposing user entities or credentials.
+Statuses are `OPEN`, `IN_PROGRESS`, `RESOLVED`, `CLOSED`; priorities are `LOW`,
+`NORMAL`, `HIGH`, `URGENT`. Categories use the existing `TicketCategory` enum.
+
+Validation errors return 400 `ProblemDetail`, missing resources return 404, and
+unauthenticated requests return 401. Optimistic locking prevents concurrent ticket
+updates from silently overwriting each other; conflicting updates return 409.
+
+The ticket table now includes `priority` (default `NORMAL`), nullable
+`assigned_to_id`, and `version` (default 0), plus indexes for customer, order, and
+assignee. Local `DB_DDL_AUTO=update` applies these changes and defaults existing
+rows. Deployments using `none` or `validate` must apply these schema changes first.
+
 ## User helpers
 
 Inject `UserHelper` from `com.AgentOps.helpers` to reuse `getUserById`,
@@ -288,6 +347,10 @@ profile updates, and session invalidation after password changes.
 `OrderServiceImplTests` uses Mockito to verify ownership filtering and creation
 rules. `OrderIntegrationTests` exercises real JWT filters and PostgreSQL persistence
 for customer isolation, staff access, pagination, validation, and API responses.
+`TicketServiceImplTests` and `TicketIntegrationTests` cover ticket ownership,
+staff permissions, filtered pagination, assignments, partial updates, validation,
+and concurrent-update conflicts. The concurrency test explicitly cleans up its
+committed rows; other ticket integration tests roll their data back.
 
 Run the unit tests and DTO validation tests:
 
