@@ -15,7 +15,7 @@ Create the `agentops` database before starting the application.
 JPA entities. It defaults to `none` when unset; use versioned migrations for
 deployed environments.
 
-Run with Java 21:
+Run with Java 25:
 
 ```powershell
 .\mvnw.cmd spring-boot:run
@@ -26,6 +26,83 @@ Run the tests:
 ```powershell
 .\mvnw.cmd test
 ```
+
+## Code coverage and SonarQube
+
+JaCoCo measures test coverage; SonarQube analyzes code quality and imports the
+JaCoCo XML report. Both Maven plugins are pinned in `pom.xml`.
+
+With Java 25 and your local PostgreSQL database configured as above, run:
+
+```powershell
+.\mvnw.cmd clean verify
+Start-Process .\target\site\jacoco\index.html
+```
+
+`verify` runs all tests, packages the application, and generates:
+
+- `target/site/jacoco/index.html`: browsable coverage report.
+- `target/site/jacoco/jacoco.xml`: coverage imported by SonarQube.
+- `target/jacoco.exec`: raw coverage data.
+
+`test` alone collects coverage data but does not generate the report. Tests must
+pass for `verify` to reach report generation. All production Java classes are
+included; no minimum coverage percentage is enforced by Maven.
+
+### Local SonarQube analysis
+
+Use an existing SonarQube server, or start a local evaluation instance with
+Docker Desktop running Linux containers:
+
+```powershell
+docker run -d --name agentops-sonarqube -p 127.0.0.1:9000:9000 sonarqube:community
+docker logs -f agentops-sonarqube
+```
+
+Wait for the server to start, then open <http://localhost:9000>. Sign in with
+`admin` / `admin` and change the password when prompted. Create a project with
+key `agentops` and generate a project analysis token. This container uses the
+embedded evaluation database; use an external supported database and persistent
+volumes for a long-lived server.
+
+Set the scanner environment variables in the same PowerShell window, then run:
+
+```powershell
+$env:SONAR_HOST_URL = 'http://localhost:9000'
+$env:SONAR_TOKEN = '<your-project-analysis-token>'
+.\mvnw.cmd clean verify sonar:sonar
+```
+
+Maven's scanner reads configuration from `pom.xml`; no `sonar-project.properties`
+is needed. Maven does not load scanner credentials from Spring Boot's `.env`.
+Keep tokens out of Git. To use a different project key, pass
+`"-Dsonar.projectKey=your-project-key"`. To fail the command when the server's
+quality gate fails, also pass `"-Dsonar.qualitygate.wait=true"`.
+
+After a successful `verify`, you can rerun only `.\mvnw.cmd sonar:sonar` to reuse
+the compiled classes and report. Do not run `clean` between those commands.
+Stop the local evaluation server with `docker stop agentops-sonarqube`; restart
+it later with `docker start agentops-sonarqube`.
+
+### SonarQube in GitHub Actions
+
+CI uploads the HTML and XML coverage reports as the `jacoco-coverage` artifact.
+To enable scanning, configure these in **Settings → Secrets and variables → Actions**:
+
+| Type | Name | Value |
+| --- | --- | --- |
+| Variable | `SONAR_HOST_URL` | Your SonarQube server URL, reachable from the GitHub runner |
+| Secret | `SONAR_TOKEN` | A project analysis token with permission to analyze `agentops` |
+
+Analysis runs on pushes to `main` and manual runs on `main`, after tests pass.
+It waits for the SonarQube quality gate; a failed scan or gate fails CI and blocks
+Docker Hub publishing. If `SONAR_HOST_URL` is unset, scanning is skipped.
+Pull requests still generate coverage reports; they do not run SonarQube scans.
+The local Docker URL is reachable only on your computer and cannot be used by a
+GitHub-hosted runner. Configure the project's quality gate in SonarQube.
+
+See the [JaCoCo Maven documentation](https://www.jacoco.org/jacoco/trunk/doc/maven.html)
+and [SonarScanner for Maven documentation](https://docs.sonarsource.com/sonarqube-server/analyzing-source-code/scanners/sonarscanner-for-maven).
 
 ## Docker
 
@@ -47,7 +124,7 @@ for PostgreSQL's health check before starting the backend. It overrides the
 backend database host and internal port to `database:5432`; your local `.env`
 values for `DB_HOST` and `DB_PORT` still work when running outside Docker.
 Database credentials come from `.env` and are injected at runtime; `.env` is
-excluded from the image build. The Java 21 image runs the app as a non-root user.
+excluded from the image build. The Java 25 image runs the app as a non-root user.
 
 `DB_DDL_AUTO=update` supports local development. Container builds skip test
 execution because the integration tests require a running database; run tests
@@ -510,7 +587,7 @@ PostgreSQL database; run all tests with `.\mvnw.cmd test`.
 
 The workflow is `.github/workflows/ci-cd.yml`:
 
-- Pull requests targeting `main` run CI: Java 21 setup, all JUnit/Mockito and
+- Pull requests targeting `main` run CI: Java 25 setup, all JUnit/Mockito and
   PostgreSQL integration tests, Maven packaging, and a Docker image build.
 - Pushes to `main` run the same CI, then CD publishes the image to Docker Hub.
 - Manual runs execute CI only.

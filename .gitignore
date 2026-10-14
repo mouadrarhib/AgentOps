@@ -16,6 +16,7 @@ Desktop.ini
 
 # Maven output
 target/
+.scannerwork/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
