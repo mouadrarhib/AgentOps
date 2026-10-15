@@ -46,7 +46,7 @@ export async function request<T>(path: string, init: RequestInit = {}, retry = t
     for (const [name, value] of Object.entries(csrf)) headers.set(name, value)
   }
   const response = await fetch(`${base}${path}`, { ...init, method, headers, credentials: 'include' })
-  if (response.status === 401 && retry && path !== '/api/auth/refresh' && path !== '/api/auth/login' && path !== '/api/auth/register') {
+  if (response.status === 401 && retry && path !== '/api/auth/refresh' && path !== '/api/auth/login') {
     if (await refreshSession()) return request<T>(path, init, false)
   }
   if (!response.ok) throw await errorFrom(response)

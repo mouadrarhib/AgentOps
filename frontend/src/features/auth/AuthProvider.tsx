@@ -8,7 +8,6 @@ type AuthContextValue = {
   loading: boolean
   error: Error | null
   login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
   retry: () => void
 }
@@ -23,10 +22,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const result = await authApi.login(email, password)
     client.setQueryData(key, result.user)
   }
-  async function register(email: string, password: string) {
-    const result = await authApi.register(email, password)
-    client.setQueryData(key, result.user)
-  }
   async function logout() {
     await authApi.logout()
     client.setQueryData(key, null)
@@ -35,7 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user: query.data ?? null,
     loading: query.isPending && query.isFetching,
     error: unauthorized ? null : query.error,
-    login, register, logout, retry: () => { void query.refetch() },
+    login, logout, retry: () => { void query.refetch() },
   }}>{children}</AuthContext.Provider>
 }
 

@@ -16,6 +16,7 @@ it('protects routes, signs in, restores a cookie session after remount, and sign
     if (url === '/api/auth/csrf') return json({ headerName: 'X-XSRF-TOKEN', token: 'csrf-test' })
     if (url === '/api/auth/me') return signedIn ? json(identity) : json({ detail: 'Unauthorized' }, 401)
     if (url === '/api/auth/refresh') return json({ detail: 'Invalid refresh token' }, 401)
+    if (url === '/orders?page=0&size=10') return json({ content: [{ id: 7, customerId: 4, status: 'PENDING', createdAt: '2026-10-15T12:00:00Z', updatedAt: '2026-10-15T12:00:00Z' }], page: 0, size: 10, totalElements: 1, totalPages: 1 })
     if (url === '/api/auth/login') { signedIn = true; return json({ user: identity }) }
     if (url === '/api/auth/logout') { signedIn = false; return new Response(null, { status: 204 }) }
     throw new Error(`Unexpected request: ${url}`)
@@ -29,11 +30,13 @@ it('protects routes, signs in, restores a cookie session after remount, and sign
   await user.type(screen.getByLabelText('Password'), 'password123')
   await user.click(screen.getByRole('button', { name: 'Sign in' }))
   await screen.findByRole('heading', { name: 'Orders' })
+  await screen.findByRole('link', { name: '#7' })
   expect(window.location.pathname).toBe('/orders')
   first.unmount()
 
   render(<App />)
   await screen.findByRole('heading', { name: 'Orders' })
+  await screen.findByRole('link', { name: '#7' })
   expect(calls.filter(call => call === 'GET /api/auth/me')).toHaveLength(2)
   await user.click(screen.getByRole('button', { name: 'Sign out' }))
   await screen.findByRole('heading', { name: 'Welcome back' })

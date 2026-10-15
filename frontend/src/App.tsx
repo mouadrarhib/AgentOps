@@ -4,7 +4,10 @@ import { useState } from 'react'
 import { AuthProvider, useAuth } from './features/auth/AuthProvider'
 import { AuthPage } from './features/auth/AuthPage'
 import { AppShell } from './features/shell/AppShell'
-import { PlaceholderPage } from './features/shell/PlaceholderPage'
+import { OverviewPage } from './features/overview/OverviewPage'
+import { OrdersPage, OrderDetailPage } from './features/orders/OrdersPage'
+import { TicketsPage, NewTicketPage, TicketDetailPage } from './features/tickets/TicketsPage'
+import { AssistantPage } from './features/agent/AssistantPage'
 
 export function ProtectedRoute() {
   const { user, loading, error, retry } = useAuth()
@@ -18,14 +21,17 @@ export function ProtectedRoute() {
 export default function App() {
   const [queryClient] = useState(() => new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 30_000 } } }))
   return <QueryClientProvider client={queryClient}><AuthProvider><BrowserRouter><Routes>
-    <Route path="/login" element={<AuthPage mode="login"/>}/>
-    <Route path="/register" element={<AuthPage mode="register"/>}/>
+    <Route path="/login" element={<AuthPage/>}/>
     <Route element={<ProtectedRoute/>}>
-      <Route path="/overview" element={<PlaceholderPage name="overview"/>}/>
-      <Route path="/orders" element={<PlaceholderPage name="orders"/>}/>
-      <Route path="/tickets" element={<PlaceholderPage name="tickets"/>}/>
-      <Route path="/assistant" element={<PlaceholderPage name="assistant"/>}/>
+      <Route path="/overview" element={<OverviewPage/>}/>
+      <Route path="/orders" element={<OrdersPage/>}/>
+      <Route path="/orders/:orderId" element={<OrderDetailPage/>}/>
+      <Route path="/tickets" element={<TicketsPage/>}/>
+      <Route path="/tickets/new" element={<NewTicketPage/>}/>
+      <Route path="/tickets/:ticketId" element={<TicketDetailPage/>}/>
+      <Route path="/assistant" element={<AssistantPage/>}/>
+      <Route path="/assistant/:conversationId" element={<AssistantPage/>}/>
     </Route>
-    <Route path="*" element={<Navigate to="/overview" replace/>}/>
+    <Route path="*" element={<Navigate to="/assistant" replace/>}/>
   </Routes></BrowserRouter></AuthProvider></QueryClientProvider>
 }

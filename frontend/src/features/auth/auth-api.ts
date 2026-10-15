@@ -8,6 +8,5 @@ type AuthResponse = { user: User }
 export const authApi = {
   me: () => request<User>('/api/auth/me'),
   login: (email: string, password: string) => request<AuthResponse>('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }, false),
-  register: (email: string, password: string) => request<AuthResponse>('/api/auth/register', { method: 'POST', body: JSON.stringify({ email, password }) }, false),
   logout: () => request<void>('/api/auth/logout', { method: 'POST' }),
 }

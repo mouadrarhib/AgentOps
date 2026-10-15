@@ -6,5 +6,5 @@ import path from 'node:path'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
-  server: { proxy: { '/api': 'http://localhost:8080' } },
+  server: { proxy: Object.fromEntries(['/api', '/agent', '/orders', '/tickets', '/health'].map(route => [route, 'http://localhost:8080'])) },
 })
