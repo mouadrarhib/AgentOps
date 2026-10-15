@@ -4,9 +4,9 @@
 
 <h1>AgentOps</h1>
 
-<p><strong>A support agent that can ask for data. A Spring Boot backend that decides what it may do.</strong></p>
+<p><strong>AI-powered support, from the conversation to the underlying order or ticket.</strong></p>
 
-<p>An API-first portfolio project for order and ticket support, with authenticated AI tool calling, ownership-aware services, and auditable actions.</p>
+<p>A full-stack support workspace with a React frontend and a Spring Boot API. Authenticated AI tool calling, ownership-aware services, and auditable actions keep each answer grounded in your data.</p>
 
 <p>
   <img src="https://img.shields.io/badge/Java-25-5274EF?style=flat-square" alt="Java 25">
@@ -14,6 +14,7 @@
   <img src="https://img.shields.io/badge/PostgreSQL-18-5274EF?style=flat-square" alt="PostgreSQL 18">
   <img src="https://img.shields.io/badge/Auth-JWT-5274EF?style=flat-square" alt="JWT authentication">
   <img src="https://img.shields.io/badge/Container-Docker-5274EF?style=flat-square" alt="Docker">
+  <img src="https://img.shields.io/badge/Frontend-React%20%2B%20TypeScript%20%2B%20Vite-5274EF?style=flat-square" alt="React, TypeScript, and Vite frontend">
 </p>
 
 <p><a href="#system-architecture">Architecture</a> · <a href="#how-the-agent-works">Agent workflow</a> · <a href="#getting-started">Run locally</a> · <a href="#api-overview">API</a></p>
@@ -22,7 +23,9 @@
 
 ## What is AgentOps?
 
-AgentOps exposes REST APIs for users, orders, and support tickets. It also offers a natural-language endpoint: a user can ask **“Show me my orders”**, and the agent can request the `list_orders` tool. Java executes that request through the same order service used by the REST API, then returns the authorized result to the model for a readable reply.
+AgentOps pairs a standalone React support workspace in [`frontend/`](frontend/) with REST APIs for users, orders, and support tickets. In the UI, a user can ask **“Show me my orders”**, and the agent can request the `list_orders` tool. Java executes that request through the same order service used by the REST API, then returns the authorized result to the model for a readable reply.
+
+![AgentOps frontend sign-in screen captured from the running Vite app](docs/assets/readme/frontend-sign-in.png)
 
 The model selects a *proposed* tool call; it does not query PostgreSQL or change records itself. Spring Security, tool validation, and the domain services remain responsible for access and business rules.
 
@@ -31,6 +34,7 @@ The model selects a *proposed* tool call; it does not query PostgreSQL or change
 | Capability | What the repository implements |
 | --- | --- |
 | AI support | Multi-round tool calling with six bounded order and ticket tools; provider timeout, output, and tool-call limits. |
+| Frontend | Responsive React + TypeScript + Vite workspace with beUI controls, sign-in, orders, tickets, and conversation history. |
 | Business API | Paginated order and ticket reads, ticket creation and staff updates, plus registration and profile endpoints. |
 | Security | HS256 access JWTs tied to persisted sessions; rotating refresh tokens; customer ownership and staff role checks. |
 | Traceability | Stored user/assistant conversation messages and persisted tool execution outcomes. |
@@ -39,6 +43,8 @@ The model selects a *proposed* tool call; it does not query PostgreSQL or change
 ## System architecture
 
 ![Architecture: client, Spring Security, Spring Boot APIs, agent orchestration, LLM, tool executor, domain services, and PostgreSQL](docs/assets/readme/architecture.svg)
+
+The React client lives in `frontend/` and calls the existing REST endpoints. The backend remains at the repository root, with its own Maven build, Dockerfile, Compose setup, and CI workflow. Vite proxies API requests during local development; the frontend can be built and deployed independently.
 
 The `/agent/chat` controller delegates to `AgentServiceImpl`. `DeepSeekClient` sends conversation messages and tool definitions to an OpenAI-compatible chat completions endpoint. `AgentToolExecutor` checks each returned call and invokes `OrderService` or `TicketService`. Those services enforce ownership and staff permissions before accessing PostgreSQL. Direct REST endpoints use those same services.
 
@@ -89,6 +95,7 @@ This is a first-party JWT API using Spring Security's resource-server components
 | Layer | Technologies |
 | --- | --- |
 | Backend | Java 25, Spring Boot 4.1.1, Spring Web MVC, Spring Data JPA, Bean Validation, Maven Wrapper |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS 4, beUI components |
 | AI | Java `HttpClient`, configurable OpenAI-compatible chat completions API, function/tool calling |
 | Identity | Spring Security, HS256 JWT, PBKDF2, persisted refresh sessions, CSRF protection for cookie requests |
 | Data | PostgreSQL 18, JPA entities and repositories |
@@ -96,6 +103,20 @@ This is a first-party JWT API using Spring Security's resource-server components
 | Delivery | Docker multi-stage build, Docker Compose, GitHub Actions, Docker Hub publishing when configured |
 
 ## Getting started
+
+### Frontend · local development
+
+Start the backend using either option below, then in another terminal:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Open the URL printed by Vite (usually `http://localhost:5173`). The Vite dev server proxies `/api`, `/orders`, `/tickets`, and `/agent` to `http://localhost:8080`. Register or sign in, then use the assistant, orders, and tickets. Set `DEEPSEEK_API_KEY` on the backend to enable assistant replies. The frontend keeps access and refresh tokens in memory, uses Bearer requests, and prompts for sign-in again after a page reload. For a separate production origin, set `VITE_API_BASE_URL` to an API URL and configure permitted origins at the deployment boundary; the current backend has no cross-origin browser configuration. Build the frontend independently with `npm run build`.
+
+The sign-in screenshot above was captured from the running Vite app. Additional authenticated workspace screenshots can be captured with representative backend data. The existing architecture and workflow diagrams below document the backend that serves this UI.
 
 ### Option A · Docker Compose
 
@@ -192,6 +213,7 @@ src/main/java/com/AgentOps/
 ├── dto/            # Request and response contracts
 └── exceptions/     # API errors and validation responses
 src/test/java/com/AgentOps/  # Unit and integration tests
+frontend/                    # Independent React + TypeScript + Vite app
 docs/assets/readme/          # Original README diagrams
 Dockerfile · compose.yaml · .github/workflows/ci-cd.yml
 ```
