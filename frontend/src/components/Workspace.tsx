@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Button } from './motion/button/base'
-import { ApiError } from '../lib/http'
+import { errorMessage } from '../lib/http'
 import { humanize } from '../lib/api'
 
 export function PageHeader({ title, description, action }: { title: string; description: string; action?: ReactNode }) {
@@ -16,9 +16,7 @@ export function DataState({ loading, error, onRetry, empty, children }: {
 }) {
   if (loading) return <div className="data-state" role="status"><span className="loading-dot" /> Loading your data…</div>
   if (error) {
-    const status = error instanceof ApiError ? error.status : undefined
-    const message = status === 403 ? 'You do not have permission to view this information.' : error.message
-    return <div className="data-state data-error" role="alert"><strong>Could not load this page</strong><p>{message}</p><Button variant="outline" onClick={onRetry}>Try again</Button></div>
+    return <div className="data-state data-error" role="alert"><strong>Could not load this page</strong><p>{errorMessage(error)}</p><Button variant="outline" onClick={onRetry}>Try again</Button></div>
   }
   if (empty) return <div className="data-state">{children}</div>
   return <>{children}</>

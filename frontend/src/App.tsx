@@ -8,12 +8,13 @@ import { OverviewPage } from './features/overview/OverviewPage'
 import { OrdersPage, OrderDetailPage } from './features/orders/OrdersPage'
 import { TicketsPage, NewTicketPage, TicketDetailPage } from './features/tickets/TicketsPage'
 import { AssistantPage } from './features/agent/AssistantPage'
+import { errorMessage } from './lib/http'
 
 export function ProtectedRoute() {
   const { user, loading, error, retry } = useAuth()
   const location = useLocation()
   if (loading) return <div className="full-status" role="status">Checking your session…</div>
-  if (error) return <div className="full-status error-state" role="alert"><strong>Could not check your session.</strong><p>{error.message}</p><button onClick={retry}>Try again</button></div>
+  if (error) return <div className="full-status error-state" role="alert"><strong>Could not check your session.</strong><p>{errorMessage(error)}</p><button onClick={retry}>Try again</button></div>
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />
   return <AppShell />
 }

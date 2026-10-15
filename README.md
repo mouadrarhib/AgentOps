@@ -32,7 +32,7 @@ The model selects a *proposed* tool call; it does not query PostgreSQL or change
 | Capability | What the repository implements |
 | --- | --- |
 | AI support | Multi-round tool calling with six bounded order and ticket tools; provider timeout, output, and tool-call limits. |
-| Frontend | Responsive React + TypeScript + Vite workspace with beUI controls, registration, login, account-scoped orders and tickets, ticket creation, staff ticket updates, AI conversations, and cookie-based session handling. |
+| Frontend | Responsive React + TypeScript + Vite workspace with beUI controls, login, account-scoped orders and tickets, ticket creation, staff ticket updates, AI conversations, and cookie-based session handling. |
 | Business API | Paginated order and ticket reads, ticket creation and staff updates, plus registration and profile endpoints. |
 | Security | HS256 access JWTs tied to persisted sessions; rotating refresh tokens; customer ownership and staff role checks. |
 | Traceability | Stored user/assistant conversation messages and persisted tool execution outcomes. |
@@ -80,7 +80,7 @@ The customer tool list excludes `update_ticket`; the service layer also checks a
 
 ![Authentication: login creates a stored session and tokens; protected requests check session and permissions; refresh rotates and logout revokes](docs/assets/readme/auth-security.svg)
 
-- Registration creates a `CUSTOMER`; login creates a database-backed session. Passwords are encoded with PBKDF2.
+- The backend registration endpoint creates a `CUSTOMER`; the frontend provides login for existing accounts. Login creates a database-backed session. Passwords are encoded with PBKDF2.
 - The API returns a signed HS256 access JWT and an opaque refresh token, and writes both as HttpOnly, SameSite Strict cookies. Clients can instead use the access token in an `Authorization: Bearer` header.
 - Each authenticated request validates JWT issuer, expiry, claims, and its live session/role in PostgreSQL. Logout revokes the current session; a password change revokes the user's sessions.
 - Refresh tokens are stored as hashes, rotated on refresh, and bounded by the original session expiry. Cookie-authenticated state-changing requests require a CSRF token; Bearer-only requests can use the API without cookies.
@@ -93,12 +93,18 @@ This is a first-party JWT API using Spring Security's resource-server components
 | Layer | Technologies |
 | --- | --- |
 | Backend | Java 25, Spring Boot 4.1.1, Spring Web MVC, Spring Data JPA, Bean Validation, Maven Wrapper |
-| Frontend | React 19, TypeScript, Vite, Tailwind CSS 4, beUI components |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS 4, beUI motion button |
 | AI | Java `HttpClient`, configurable OpenAI-compatible chat completions API, function/tool calling |
 | Identity | Spring Security, HS256 JWT, PBKDF2, persisted refresh sessions, CSRF protection for cookie requests |
 | Data | PostgreSQL 18, JPA entities and repositories |
 | Quality | JUnit/Spring Boot tests, JaCoCo, optional SonarQube, springdoc OpenAPI |
 | Delivery | Docker multi-stage build, Docker Compose, GitHub Actions, Docker Hub publishing when configured |
+
+## Frontend workspace
+
+The React app opens on the **AI assistant**, with a prominent assistant entry in the navigation. An overview shows counts and recent records from live API responses. Customers can read their own orders and tickets and create a ticket for an authorized order. SUPPORT and ADMIN can also update ticket status, priority, and assignment. Record lists, details, forms, and chat share loading, empty, error, and confirmation patterns across desktop and mobile layouts.
+
+The browser uses HttpOnly cookies, a CSRF token for writes, and session refresh through the shared API client. The backend remains the authority for ownership and role permissions. The frontend is an independent Vite app; Docker Compose in this repository runs PostgreSQL and Spring Boot, so start Vite separately for the full local experience. See the [frontend README](frontend/README.md) for its structure and environment settings.
 
 ## Getting started
 
@@ -112,9 +118,7 @@ npm install
 npm run dev
 ```
 
-Open the URL printed by Vite (usually `http://localhost:5173`). The Vite dev server proxies the API, agent, order, and ticket routes to `http://localhost:8080`. Register or sign in to access the workspace. It uses HttpOnly auth cookies, requests a CSRF token before writes, and uses the rotating refresh cookie to restore an expired session after reload. It does not keep token values in JavaScript storage. For a separate production origin, set `VITE_API_BASE_URL` and include that exact origin in `CORS_ALLOWED_ORIGINS`. Build the frontend independently with `npm run build`.
-
-The existing architecture and workflow diagrams below document the backend that serves this UI.
+Open the URL printed by Vite (usually `http://localhost:5173`). The Vite dev server proxies the API, agent, order, and ticket routes to `http://localhost:8080`. Sign in with an existing account; the frontend has no registration page. The backend still exposes `POST /api/auth/register` for creating a customer account through the API. The browser uses HttpOnly auth cookies, requests a CSRF token before writes, and uses the rotating refresh cookie to restore an expired session after reload. It does not keep token values in JavaScript storage. For a separate production origin, set `VITE_API_BASE_URL` and include that exact origin in `CORS_ALLOWED_ORIGINS`. Build the frontend independently with `npm run build`.
 
 ### Option A · Docker Compose
 

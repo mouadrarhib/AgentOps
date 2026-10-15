@@ -7,6 +7,14 @@ export class ApiError extends Error {
   }
 }
 
+export function errorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    return error.message
+  }
+  if (error instanceof TypeError) return 'Could not reach the server. Check your connection and try again.'
+  return error instanceof Error ? error.message : 'Something went wrong. Try again.'
+}
+
 const base = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
 const unsafe = new Set(['POST', 'PATCH', 'PUT', 'DELETE'])
 let refreshInFlight: Promise<boolean> | undefined

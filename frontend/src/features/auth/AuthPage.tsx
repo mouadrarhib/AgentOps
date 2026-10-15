@@ -3,7 +3,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowRight, ShieldCheck, Sparkle } from '@phosphor-icons/react'
 import { Button } from '../../components/motion/button/base'
 import { useAuth } from './AuthProvider'
-import { ApiError } from '../../lib/http'
+import { ApiError, errorMessage } from '../../lib/http'
 
 export function AuthPage() {
   const { user, loading, login } = useAuth()
@@ -27,14 +27,14 @@ export function AuthPage() {
       navigate(destination, { replace: true })
     } catch (failure) {
       const problem = failure as Error
-      setError(problem.message)
+      setError(errorMessage(problem))
       if (problem instanceof ApiError) setFieldErrors(Object.fromEntries(problem.fields.map(field => [field.field, field.message])))
     } finally { setPending(false) }
   }
 
   return <div className="auth-page">
     <Link className="auth-logo" to="/login"><span className="brand-mark"><Sparkle size={22} weight="fill" /></span><strong>AgentOps</strong></Link>
-    <div className="auth-grid"><section className="auth-intro"><div className="eyebrow"><ShieldCheck size={17} /> Support, with clear boundaries</div><h1>Answers about your orders,<br />all in one place.</h1><p>Check order details, follow support tickets, and ask the AgentOps assistant for help.</p><div className="intro-line"><span>01</span> Sign in securely <span>→</span> Ask AgentOps for help</div></section>
+    <div className="auth-grid"><section className="auth-intro"><div className="eyebrow"><ShieldCheck size={17} /> Support, with clear boundaries</div><h1>Answers about your orders,<br />all in one place.</h1><p>Check order details, follow support tickets, and ask the AgentOps assistant for help.</p><div className="intro-line"><ShieldCheck size={18}/> Access to records follows your account permissions.</div></section>
       <section className="auth-card" aria-labelledby="auth-title"><div className="card-icon"><Sparkle size={22} weight="fill" /></div><h2 id="auth-title">Welcome back</h2><p>Sign in to check orders, follow tickets, and chat with AgentOps.</p>
         {error && <div className="form-error" role="alert">{error}</div>}
         <form onSubmit={submit}><label htmlFor="email">Email address</label><input id="email" type="email" autoComplete="email" required maxLength={254} value={email} onChange={event => setEmail(event.target.value)} aria-invalid={!!fieldErrors.email} aria-describedby={fieldErrors.email ? 'email-error' : undefined} placeholder="you@example.com" />{fieldErrors.email && <small id="email-error" className="field-error">{fieldErrors.email}</small>}
