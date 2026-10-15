@@ -23,9 +23,7 @@
 
 ## What is AgentOps?
 
-AgentOps pairs a standalone React support workspace in [`frontend/`](frontend/) with REST APIs for users, orders, and support tickets. In the UI, a user can ask **“Show me my orders”**, and the agent can request the `list_orders` tool. Java executes that request through the same order service used by the REST API, then returns the authorized result to the model for a readable reply.
-
-![AgentOps frontend sign-in screen captured from the running Vite app](docs/assets/readme/frontend-sign-in.png)
+AgentOps pairs a standalone React support workspace in [`frontend/`](frontend/) with REST APIs for users, orders, and support tickets. The frontend currently includes authentication, session restoration, and protected placeholder routes. Order, ticket, and AI Assistant screens are planned for later tasks. The backend already supports the natural-language flow: a client can ask **“Show me my orders”**, and the agent can request the `list_orders` tool. Java executes that request through the same order service used by the REST API, then returns the authorized result to the model for a readable reply.
 
 The model selects a *proposed* tool call; it does not query PostgreSQL or change records itself. Spring Security, tool validation, and the domain services remain responsible for access and business rules.
 
@@ -34,7 +32,7 @@ The model selects a *proposed* tool call; it does not query PostgreSQL or change
 | Capability | What the repository implements |
 | --- | --- |
 | AI support | Multi-round tool calling with six bounded order and ticket tools; provider timeout, output, and tool-call limits. |
-| Frontend | Responsive React + TypeScript + Vite workspace with beUI controls, sign-in, orders, tickets, and conversation history. |
+| Frontend | Responsive React + TypeScript + Vite shell with beUI controls, registration, login, protected routes, and cookie-based session handling. Order, ticket, and assistant pages are placeholders. |
 | Business API | Paginated order and ticket reads, ticket creation and staff updates, plus registration and profile endpoints. |
 | Security | HS256 access JWTs tied to persisted sessions; rotating refresh tokens; customer ownership and staff role checks. |
 | Traceability | Stored user/assistant conversation messages and persisted tool execution outcomes. |
@@ -114,9 +112,9 @@ npm install
 npm run dev
 ```
 
-Open the URL printed by Vite (usually `http://localhost:5173`). The Vite dev server proxies `/api`, `/orders`, `/tickets`, and `/agent` to `http://localhost:8080`. Register or sign in, then use the assistant, orders, and tickets. Set `DEEPSEEK_API_KEY` on the backend to enable assistant replies. The frontend keeps access and refresh tokens in memory, uses Bearer requests, and prompts for sign-in again after a page reload. For a separate production origin, set `VITE_API_BASE_URL` to an API URL and configure permitted origins at the deployment boundary; the current backend has no cross-origin browser configuration. Build the frontend independently with `npm run build`.
+Open the URL printed by Vite (usually `http://localhost:5173`). The Vite dev server proxies `/api` to `http://localhost:8080`. Register or sign in to access the protected workspace; Orders, Tickets, and AI Assistant remain placeholders in Task 1. The frontend uses HttpOnly auth cookies, requests a CSRF token before writes, and uses the rotating refresh cookie to restore an expired session after reload. It does not keep token values in JavaScript storage. For a separate production origin, set `VITE_API_BASE_URL` and include that origin in `CORS_ALLOWED_ORIGINS`. Build the frontend independently with `npm run build`.
 
-The sign-in screenshot above was captured from the running Vite app. Additional authenticated workspace screenshots can be captured with representative backend data. The existing architecture and workflow diagrams below document the backend that serves this UI.
+The existing architecture and workflow diagrams below document the backend that serves this UI.
 
 ### Option A · Docker Compose
 
