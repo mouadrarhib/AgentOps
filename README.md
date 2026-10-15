@@ -151,6 +151,12 @@ On macOS/Linux, use `cp .env.example .env` and `./mvnw spring-boot:run`. The def
 
 > **Database setup:** `update` is convenient for local exploration. The repository does not include versioned database migrations; plan a migration strategy before using a managed deployment.
 
+### Frontend access (CORS)
+
+The API accepts browser requests from `http://localhost:5173` by default. Set `CORS_ALLOWED_ORIGINS` to a comma-separated list of exact origins (scheme, host, and port) for other frontends, for example `http://localhost:5173,https://app.example.com`. The value is read from the root `.env` file for local runs and passed into the backend by Docker Compose. Restart the backend after changing it.
+
+Allowed preflights cover the current `GET`, `POST`, and `PATCH` endpoints, plus `Authorization`, `Content-Type`, and `X-XSRF-TOKEN` request headers. The API permits credentials for listed origins and exposes the `Location` response header. CORS does not replace authentication: send a Bearer token, or use `credentials: "include"` for the cookie flow. Cookie-based writes still require a CSRF token. Cookies use `SameSite=Strict`, so a frontend hosted on a different *site* must use Bearer tokens or a same-site deployment.
+
 ## API overview
 
 | Area | Endpoints | Access |

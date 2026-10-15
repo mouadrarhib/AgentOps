@@ -11,6 +11,7 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.*;
+import org.springframework.security.config.Customizer;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -95,7 +96,8 @@ public class SecurityConfig {
                     .contains(request.getRequestURI().substring(request.getContextPath().length()))) return null;
             return AuthCookies.read(request, AuthCookies.ACCESS);
         });
-        return http.csrf(csrf -> csrf
+        return http.cors(Customizer.withDefaults())
+                .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfCookies)
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
                         .requireCsrfProtectionMatcher(request -> {
