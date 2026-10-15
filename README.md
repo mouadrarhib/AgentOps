@@ -444,6 +444,10 @@ The model is configurable; thinking is disabled for this tool loop. Provider
 requests have timeouts and are not automatically retried. API redirects are not
 followed, so credentials are never forwarded to a redirect target.
 
+`GET /health` is a public liveness endpoint. It returns HTTP 200 with
+`{"status":"UP"}` when the backend is running. It does not check PostgreSQL or
+DeepSeek availability.
+
 | Method | Endpoint | Behavior |
 | --- | --- | --- |
 | POST | `/agent/chat` | Send a message and receive the AI reply |
