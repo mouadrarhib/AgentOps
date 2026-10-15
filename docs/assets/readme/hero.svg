@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
+  <title id="title">AgentOps</title>
+  <desc id="desc">AI-assisted support, grounded in your backend. A model connects through a guarded tool layer to order and ticket services.</desc>
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#07152c"/><stop offset=".55" stop-color="#101c43"/><stop offset="1" stop-color="#20174a"/></linearGradient>
+    <linearGradient id="line" x2="1"><stop stop-color="#55e4ee"/><stop offset="1" stop-color="#9d83ff"/></linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="24"/></filter>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#90a8f4" stroke-opacity=".08"/></pattern>
+  </defs>
+  <rect width="1200" height="360" rx="24" fill="url(#bg)"/>
+  <rect width="1200" height="360" rx="24" fill="url(#grid)"/>
+  <circle cx="1010" cy="93" r="110" fill="#5369ff" opacity=".22" filter="url(#glow)"/>
+  <circle cx="729" cy="291" r="100" fill="#39d6e6" opacity=".12" filter="url(#glow)"/>
+  <rect x="48" y="47" width="146" height="31" rx="15" fill="#142f50" stroke="#3b6884"/>
+  <circle cx="65" cy="62" r="4" fill="#55e4ee"/>
+  <text x="79" y="68" fill="#b9deed" font-family="Arial,sans-serif" font-size="14" font-weight="700" letter-spacing="2">JAVA × AI</text>
+  <text x="48" y="176" fill="#f5f8ff" font-family="Arial,sans-serif" font-size="74" font-weight="800" letter-spacing="-3">Agent<tspan fill="#64e5ef">Ops</tspan></text>
+  <text x="50" y="222" fill="#c8d5f5" font-family="Arial,sans-serif" font-size="23">AI-assisted support, grounded in your backend.</text>
+  <text x="50" y="286" fill="#91a4cc" font-family="Arial,sans-serif" font-size="17">Spring Boot  ·  secure tool calls  ·  auditable actions</text>
+  <path d="M740 180H800M900 180H960" stroke="url(#line)" stroke-width="3" stroke-dasharray="6 5"/>
+  <rect x="687" y="134" width="116" height="92" rx="20" fill="#152d53" stroke="#52cde8" stroke-width="2"/>
+  <circle cx="745" cy="166" r="17" fill="#2c5675"/><circle cx="739" cy="165" r="3" fill="#75f5f1"/><circle cx="751" cy="165" r="3" fill="#75f5f1"/><path d="M737 177Q745 183 753 177" stroke="#75f5f1" stroke-width="2" fill="none"/>
+  <text x="745" y="209" text-anchor="middle" fill="#e1f6ff" font-family="Arial,sans-serif" font-size="15" font-weight="700">MODEL</text>
+  <rect x="805" y="134" width="116" height="92" rx="20" fill="#1d285a" stroke="#9d83ff" stroke-width="2"/>
+  <path d="M849 171l-10 9 10 9m28-18 10 9-10 9m-20 5 12-28" stroke="#c5baff" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <text x="863" y="209" text-anchor="middle" fill="#e9e2ff" font-family="Arial,sans-serif" font-size="15" font-weight="700">JAVA</text>
+  <rect x="963" y="107" width="173" height="62" rx="16" fill="#173253" stroke="#4e82af"/>
+  <text x="1049" y="145" text-anchor="middle" fill="#dbedff" font-family="Arial,sans-serif" font-size="17" font-weight="700">Orders</text>
+  <rect x="963" y="190" width="173" height="62" rx="16" fill="#173253" stroke="#4e82af"/>
+  <text x="1049" y="228" text-anchor="middle" fill="#dbedff" font-family="Arial,sans-serif" font-size="17" font-weight="700">Tickets</text>
+  <path d="M921 180H944V138H963M944 180V221H963" stroke="url(#line)" stroke-width="3" fill="none"/>
+  <text x="864" y="274" text-anchor="middle" fill="#9fb1d9" font-family="Arial,sans-serif" font-size="15">tool request → validated execution</text>
+</svg>

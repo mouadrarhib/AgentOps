@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" role="img" aria-labelledby="title desc">
+  <title id="title">AI agent workflow</title>
+  <desc id="desc">User asks to see orders; Spring checks authentication; the LLM requests list_orders; Java validates and executes through OrderService; the result returns to the LLM, whose answer is stored and returned. Tool execution is audited.</desc>
+  <defs><marker id="a" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0L9 4.5 0 9Z" fill="#61deea"/></marker></defs>
+  <rect width="1200" height="560" rx="22" fill="#08162f"/>
+  <text x="48" y="58" fill="#f3f7ff" font-family="Arial,sans-serif" font-size="30" font-weight="700">One request, two decision makers</text>
+  <text x="48" y="86" fill="#a2b5d8" font-family="Arial,sans-serif" font-size="16">Example: “Show me my orders”</text>
+  <g font-family="Arial,sans-serif">
+    <rect x="45" y="126" width="250" height="96" rx="17" fill="#193854" stroke="#52c7d8"/><text x="65" y="154" fill="#64e2e9" font-size="14" font-weight="700">01 · CLIENT</text><text x="65" y="187" fill="#edf8ff" font-size="18">Natural-language request</text>
+    <rect x="335" y="126" width="250" height="96" rx="17" fill="#203557" stroke="#7696e1"/><text x="355" y="154" fill="#9eb4ff" font-size="14" font-weight="700">02 · SPRING SECURITY</text><text x="355" y="187" fill="#edf2ff" font-size="18">JWT + session check</text>
+    <rect x="625" y="126" width="250" height="96" rx="17" fill="#292d5c" stroke="#a88ef0"/><text x="645" y="154" fill="#c4b4ff" font-size="14" font-weight="700">03 · AGENTOPS → MODEL</text><text x="645" y="187" fill="#f2edff" font-size="18">Context + allowed tools</text>
+    <rect x="915" y="126" width="240" height="96" rx="17" fill="#292d5c" stroke="#a88ef0"/><text x="935" y="154" fill="#c4b4ff" font-size="14" font-weight="700">04 · MODEL DECIDES</text><text x="935" y="187" fill="#f2edff" font-size="18">Request list_orders</text>
+    <rect x="45" y="288" width="340" height="112" rx="17" fill="#1d4151" stroke="#5fd5d3"/><text x="65" y="316" fill="#80f1e0" font-size="14" font-weight="700">05 · JAVA EXECUTES</text><text x="65" y="348" fill="#f0fffc" font-size="18">Validate → OrderService</text><text x="65" y="376" fill="#a8d6d2" font-size="15">Own orders only · audit outcome</text>
+    <rect x="430" y="288" width="340" height="112" rx="17" fill="#203557" stroke="#7696e1"/><text x="450" y="316" fill="#9eb4ff" font-size="14" font-weight="700">06 · RESULT → MODEL</text><text x="450" y="348" fill="#edf2ff" font-size="18">Structured tool result</text><text x="450" y="376" fill="#b9c9e7" font-size="15">Model writes a final answer</text>
+    <rect x="815" y="288" width="340" height="112" rx="17" fill="#193854" stroke="#52c7d8"/><text x="835" y="316" fill="#64e2e9" font-size="14" font-weight="700">07 · AGENTOPS → CLIENT</text><text x="835" y="348" fill="#edf8ff" font-size="18">Save assistant message</text><text x="835" y="376" fill="#a8d6d2" font-size="15">Return reply + tool count</text>
+  </g>
+  <g fill="none" stroke="#61deea" stroke-width="2.5" marker-end="url(#a)"><path d="M295 174H327"/><path d="M585 174H617"/><path d="M875 174H907"/><path d="M1035 222V254H215V280"/><path d="M385 344H422"/><path d="M770 344H807"/></g>
+  <rect x="45" y="452" width="1110" height="64" rx="14" fill="#122a43" stroke="#284e70"/>
+  <text x="66" y="480" fill="#64e2e9" font-family="Arial,sans-serif" font-size="15" font-weight="700">08 · PERSISTENCE</text>
+  <text x="235" y="480" fill="#c8d9ee" font-family="Arial,sans-serif" font-size="16">User + assistant messages in conversation history  ·  actual tool executions in audit log</text>
+</svg>

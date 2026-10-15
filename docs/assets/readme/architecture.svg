@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" role="img" aria-labelledby="title desc">
+  <title id="title">AgentOps system architecture</title>
+  <desc id="desc">An API client reaches Spring Security and controllers. Agent orchestration talks to an LLM and routes requested tools through the Java tool executor and business services to PostgreSQL.</desc>
+  <defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0L9 4.5 0 9Z" fill="#5ee0ed"/></marker></defs>
+  <rect width="1200" height="560" rx="22" fill="#08162f"/>
+  <text x="48" y="60" fill="#f3f7ff" font-family="Arial,sans-serif" font-size="30" font-weight="700">System architecture</text>
+  <text x="48" y="88" fill="#9cb1d5" font-family="Arial,sans-serif" font-size="16">Model proposes actions · Spring Boot owns execution and authorization</text>
+  <g font-family="Arial,sans-serif" text-anchor="middle">
+    <rect x="48" y="182" width="166" height="80" rx="16" fill="#17345a" stroke="#4ca8c6"/><text x="131" y="230" fill="#e6f8ff" font-size="18" font-weight="700">API client</text>
+    <rect x="266" y="182" width="178" height="80" rx="16" fill="#1e3157" stroke="#758fe4"/><text x="355" y="215" fill="#e8edff" font-size="17" font-weight="700">Spring Security</text><text x="355" y="239" fill="#b8c8e8" font-size="14">JWT + session</text>
+    <rect x="496" y="182" width="172" height="80" rx="16" fill="#1e3157" stroke="#758fe4"/><text x="582" y="215" fill="#e8edff" font-size="17" font-weight="700">Controllers</text><text x="582" y="239" fill="#b8c8e8" font-size="14">REST + /agent/chat</text>
+    <rect x="720" y="140" width="204" height="80" rx="16" fill="#2a285f" stroke="#ad91ff"/><text x="822" y="173" fill="#eee8ff" font-size="17" font-weight="700">AgentServiceImpl</text><text x="822" y="197" fill="#cbbef7" font-size="14">conversation loop</text>
+    <rect x="974" y="140" width="176" height="80" rx="16" fill="#26345c" stroke="#62dce9"/><text x="1062" y="173" fill="#e8faff" font-size="17" font-weight="700">LLM provider</text><text x="1062" y="197" fill="#b9e4f0" font-size="14">chat completions</text>
+    <rect x="720" y="290" width="204" height="80" rx="16" fill="#1f3758" stroke="#62dce9"/><text x="822" y="323" fill="#e8faff" font-size="17" font-weight="700">AgentToolExecutor</text><text x="822" y="347" fill="#b9e4f0" font-size="14">validate + audit</text>
+    <rect x="496" y="290" width="172" height="80" rx="16" fill="#1d3a51" stroke="#68aeca"/><text x="582" y="323" fill="#e5f8ff" font-size="17" font-weight="700">Order / ticket</text><text x="582" y="347" fill="#b8d9e6" font-size="14">services</text>
+    <rect x="266" y="290" width="178" height="80" rx="16" fill="#1d3a51" stroke="#68aeca"/><text x="355" y="323" fill="#e5f8ff" font-size="17" font-weight="700">JPA repositories</text><text x="355" y="347" fill="#b8d9e6" font-size="14">scoped queries</text>
+    <rect x="48" y="290" width="166" height="80" rx="16" fill="#17345a" stroke="#4ca8c6"/><text x="131" y="338" fill="#e6f8ff" font-size="18" font-weight="700">PostgreSQL</text>
+  </g>
+  <g fill="none" stroke="#5ee0ed" stroke-width="2.5" marker-end="url(#arrow)">
+    <path d="M214 222H258"/><path d="M444 222H488"/><path d="M668 204H705V180H712"/><path d="M924 180H966"/>
+    <path d="M822 220V282"/><path d="M720 330H676"/><path d="M496 330H452"/><path d="M266 330H222"/>
+    <path d="M582 262V282"/>
+  </g>
+  <path d="M974 213H932" stroke="#9d83ff" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <text x="949" y="247" fill="#b8a9f0" font-family="Arial,sans-serif" font-size="13" text-anchor="middle">response</text>
+  <text x="48" y="450" fill="#d9e9ff" font-family="Arial,sans-serif" font-size="17" font-weight="700">Response path</text>
+  <text x="48" y="480" fill="#a9bedc" font-family="Arial,sans-serif" font-size="16">Database result → Java tool result → LLM final answer → API client</text>
+  <text x="48" y="519" fill="#7896bc" font-family="Arial,sans-serif" font-size="14">Conversations, sessions, orders, tickets and tool audits are persisted in PostgreSQL.</text>
+</svg>

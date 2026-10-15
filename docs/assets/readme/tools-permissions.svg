@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 490" role="img" aria-labelledby="title desc">
+  <title id="title">Agent tools and permissions</title>
+  <desc id="desc">Six agent tools. Customers may read their own orders and tickets and create tickets for authorized orders. Support and admin may also update tickets. Java service checks enforce these permissions.</desc>
+  <rect width="1200" height="490" rx="22" fill="#08162f"/>
+  <text x="48" y="58" fill="#f3f7ff" font-family="Arial,sans-serif" font-size="30" font-weight="700">Six tools. One authorization boundary.</text>
+  <text x="48" y="87" fill="#9fb3d6" font-family="Arial,sans-serif" font-size="16">Role-specific definitions guide the model; Java services enforce the rules.</text>
+  <rect x="45" y="125" width="1110" height="42" rx="10" fill="#1d3555"/>
+  <g font-family="Arial,sans-serif" font-size="15" font-weight="700"><text x="68" y="152" fill="#a9bfdd">TOOL</text><text x="475" y="152" fill="#a9bfdd">CUSTOMER</text><text x="815" y="152" fill="#a9bfdd">SUPPORT / ADMIN</text></g>
+  <g font-family="Arial,sans-serif" font-size="18">
+    <rect x="45" y="175" width="1110" height="43" rx="8" fill="#132a45"/><text x="68" y="202" fill="#eaf7ff">get_order</text><text x="475" y="202" fill="#72e8dc">Own order</text><text x="815" y="202" fill="#b7c8ff">Available</text>
+    <rect x="45" y="221" width="1110" height="43" rx="8" fill="#172d4b"/><text x="68" y="248" fill="#eaf7ff">list_orders</text><text x="475" y="248" fill="#72e8dc">Own orders</text><text x="815" y="248" fill="#b7c8ff">Available</text>
+    <rect x="45" y="267" width="1110" height="43" rx="8" fill="#132a45"/><text x="68" y="294" fill="#eaf7ff">get_ticket</text><text x="475" y="294" fill="#72e8dc">Own ticket</text><text x="815" y="294" fill="#b7c8ff">Available</text>
+    <rect x="45" y="313" width="1110" height="43" rx="8" fill="#172d4b"/><text x="68" y="340" fill="#eaf7ff">list_tickets</text><text x="475" y="340" fill="#72e8dc">Own tickets</text><text x="815" y="340" fill="#b7c8ff">Available</text>
+    <rect x="45" y="359" width="1110" height="43" rx="8" fill="#132a45"/><text x="68" y="386" fill="#eaf7ff">create_ticket</text><text x="475" y="386" fill="#72e8dc">Own order</text><text x="815" y="386" fill="#b7c8ff">Available</text>
+    <rect x="45" y="405" width="1110" height="43" rx="8" fill="#262c53" stroke="#a18ff3"/><text x="68" y="432" fill="#f2edff">update_ticket</text><text x="475" y="432" fill="#9ea9c8">Unavailable</text><text x="815" y="432" fill="#d0c3ff">Available</text>
+  </g>
+  <text x="48" y="473" fill="#829abb" font-family="Arial,sans-serif" font-size="14">All executed tool calls are validated and audited; customer read scope is enforced by services.</text>
+</svg>

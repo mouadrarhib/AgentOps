@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 370" role="img" aria-labelledby="title desc">
+  <title id="title">GitHub Actions CI and Docker publishing</title>
+  <desc id="desc">Push and pull request to main run Maven verify with PostgreSQL 18, tests and JaCoCo coverage, optional SonarQube on main, and Docker build validation. Successful pushes to main publish Docker Hub image tags when credentials are configured.</desc>
+  <defs><marker id="a" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0L9 4.5 0 9Z" fill="#61deea"/></marker></defs>
+  <rect width="1200" height="370" rx="22" fill="#08162f"/>
+  <text x="48" y="58" fill="#f3f7ff" font-family="Arial,sans-serif" font-size="30" font-weight="700">From commit to validated image</text>
+  <text x="48" y="87" fill="#9fb3d6" font-family="Arial,sans-serif" font-size="16">GitHub Actions · pushes and pull requests to main</text>
+  <g font-family="Arial,sans-serif">
+    <rect x="45" y="136" width="200" height="115" rx="16" fill="#193753" stroke="#60cce2"/><text x="65" y="168" fill="#68e1e9" font-size="14" font-weight="700">01 · SOURCE</text><text x="65" y="202" fill="#eff9ff" font-size="18">Checkout</text><text x="65" y="228" fill="#aecddd" font-size="14">Java 25</text>
+    <rect x="275" y="136" width="200" height="115" rx="16" fill="#20385a" stroke="#779be3"/><text x="295" y="168" fill="#a6baff" font-size="14" font-weight="700">02 · VERIFY</text><text x="295" y="202" fill="#f1f4ff" font-size="18">Maven tests</text><text x="295" y="228" fill="#b7c9e8" font-size="14">PostgreSQL 18</text>
+    <rect x="505" y="136" width="200" height="115" rx="16" fill="#20385a" stroke="#779be3"/><text x="525" y="168" fill="#a6baff" font-size="14" font-weight="700">03 · QUALITY</text><text x="525" y="202" fill="#f1f4ff" font-size="18">JaCoCo reports</text><text x="525" y="228" fill="#b7c9e8" font-size="14">SonarQube optional</text>
+    <rect x="735" y="136" width="200" height="115" rx="16" fill="#1e4053" stroke="#67d9d2"/><text x="755" y="168" fill="#82efde" font-size="14" font-weight="700">04 · BUILD</text><text x="755" y="202" fill="#effffa" font-size="18">Docker validation</text><text x="755" y="228" fill="#b6dfd8" font-size="14">No image push in CI</text>
+    <rect x="965" y="136" width="190" height="115" rx="16" fill="#2d2e5b" stroke="#aa94f0"/><text x="985" y="168" fill="#d0c2ff" font-size="14" font-weight="700">05 · PUBLISH</text><text x="985" y="202" fill="#f6f0ff" font-size="18">Docker Hub</text><text x="985" y="228" fill="#cfc3ed" font-size="14">main push only</text>
+  </g>
+  <g fill="none" stroke="#61deea" stroke-width="2.5" marker-end="url(#a)"><path d="M245 193H267"/><path d="M475 193H497"/><path d="M705 193H727"/><path d="M935 193H957"/></g>
+  <rect x="45" y="293" width="1110" height="46" rx="12" fill="#132b45" stroke="#2d5271"/>
+  <text x="65" y="322" fill="#c6d9ef" font-family="Arial,sans-serif" font-size="16">Publishing requires a successful main push and configured Docker Hub credentials. No runtime deployment is defined.</text>
+</svg>
