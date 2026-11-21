@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowUp, ChatCircleDots, Plus, Sparkle } from '@phosphor-icons/react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -18,11 +18,18 @@ export function AssistantPage() {
   const invalidId = param !== undefined && (!Number.isInteger(conversationId) || !conversationId || conversationId <= 0)
   const [conversationPage, setConversationPage] = useState(0)
   const [messagePage, setMessagePage] = useState(0)
+  const threadRef = useRef<HTMLDivElement>(null)
   const [message, setMessage] = useState('')
   const [pendingMessage, setPendingMessage] = useState('')
   const [lastToolActivity, setLastToolActivity] = useState<{ conversationId: number; count: number } | null>(null)
   const conversations = useQuery({ queryKey: ['conversations', conversationPage], queryFn: () => api.conversations(conversationPage) })
   const detail = useQuery({ queryKey: ['conversation', conversationId, messagePage], queryFn: () => api.conversation(conversationId!, messagePage), enabled: !!conversationId && !invalidId })
+  const messages = detail.data?.messages ?? []
+  const lastMessageId = messages.length ? messages[messages.length - 1].id : undefined
+  useEffect(() => {
+    const thread = threadRef.current
+    if (thread) thread.scrollTop = thread.scrollHeight
+  }, [conversationId, lastMessageId, pendingMessage, detail.isPending])
   const send = useMutation({
     mutationFn: (text: string) => api.chat(text, conversationId),
     onSuccess: response => {
@@ -67,9 +74,9 @@ export function AssistantPage() {
         <Pager page={conversationPage} totalPages={conversations.data?.totalPages ?? 0} onChange={setConversationPage}/>
       </aside>
       <section className="chat-panel" aria-label="Assistant chat"><div className="chat-panel-top"><span className="agent-avatar"><Sparkle size={20} weight="fill"/></span><div><strong>AgentOps assistant</strong><small>Responses use your account's available records</small></div></div>
-        <div className="chat-thread" aria-live="polite">
-          {invalidId ? <div className="data-state data-error" role="alert">Invalid conversation ID.</div> : conversationId ? <DataState loading={detail.isPending} error={detail.error} onRetry={() => void detail.refetch()} empty={detail.data?.messages.length === 0}>
-            {detail.data?.messages.length === 0 ? <p>No messages in this conversation yet.</p> : <><div className="message-page-control"><Pager page={messagePage} totalPages={detail.data?.totalPages ?? 0} onChange={setMessagePage}/></div>{detail.data?.messages.map(item => <div key={item.id} className={`chat-message ${item.role === 'USER' ? 'from-user' : 'from-agent'}`}><span className="message-author">{item.role === 'USER' ? 'You' : 'AgentOps'}<time>{timeLabel(item.createdAt)}</time></span><p>{item.content}</p></div>)}{lastToolActivity?.conversationId === conversationId && lastToolActivity.count > 0 && <span className="tool-count">{lastToolActivity.count} backend tool {lastToolActivity.count === 1 ? 'call' : 'calls'} in the last reply</span>}</>}
+        <div className="chat-thread" ref={threadRef} aria-live="polite">
+          {invalidId ? <div className="data-state data-error" role="alert">Invalid conversation ID.</div> : conversationId ? <DataState loading={detail.isPending} error={detail.error} onRetry={() => void detail.refetch()} empty={messages.length === 0}>
+            {messages.length === 0 ? <p>No messages in this conversation yet.</p> : <><div className="message-page-control"><Pager page={messagePage} totalPages={detail.data?.totalPages ?? 0} onChange={setMessagePage}/></div>{messages.map(item => <div key={item.id} className={`chat-message ${item.role === 'USER' ? 'from-user' : 'from-agent'}`}><span className="message-author">{item.role === 'USER' ? 'You' : 'AgentOps'}<time>{timeLabel(item.createdAt)}</time></span><p>{item.content}</p></div>)}{lastToolActivity?.conversationId === conversationId && lastToolActivity.count > 0 && <span className="tool-count">{lastToolActivity.count} backend tool {lastToolActivity.count === 1 ? 'call' : 'calls'} in the last reply</span>}</>}
           </DataState> : <div className="chat-empty"><div className="chat-empty-mark"><Sparkle size={32} weight="fill"/></div><h2>Ask AgentOps</h2><p>Find order details, check tickets, or ask for help with a support request. The assistant can request backend tools; Java checks and runs them.</p><div className="suggestions">{suggestions.map(text => <button key={text} type="button" onClick={() => setMessage(text)}>{text} <ArrowUp size={15}/></button>)}</div></div>}
           {send.isPending && <div className="chat-message from-user pending"><span className="message-author">You</span><p>{pendingMessage}</p></div>}
           {send.isPending && <TypingBubble/>}
