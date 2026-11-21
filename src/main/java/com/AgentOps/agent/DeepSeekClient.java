@@ -35,9 +35,23 @@ public class DeepSeekClient {
                 || base.getUserInfo() != null || base.getQuery() != null || base.getFragment() != null) {
             throw new IllegalStateException("DEEPSEEK_BASE_URL must be an HTTP(S) API base URL.");
         }
-        endpoint = URI.create(base.toString().replaceAll("/+$", "") + "/chat/completions");
+        endpoint = URI.create(stripTrailingSlashes(base.toString()) + "/chat/completions");
         http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10))
                 .followRedirects(HttpClient.Redirect.NEVER).build();
+    }
+
+    /**
+     * Drops any trailing slashes from an API base so the path can be appended.
+     * Written as a reverse scan rather than {@code replaceAll("/+$", "")}: the
+     * regex form is flagged as super-linear backtracking by static analysis, and
+     * this is both linear and allocation-free.
+     */
+    static String stripTrailingSlashes(String value) {
+        int end = value.length();
+        while (end > 0 && value.charAt(end - 1) == '/') {
+            end--;
+        }
+        return value.substring(0, end);
     }
 
     public void requireConfigured() {

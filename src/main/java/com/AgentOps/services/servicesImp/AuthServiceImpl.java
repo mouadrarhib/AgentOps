@@ -14,6 +14,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Service
 public class AuthServiceImpl implements AuthService {
     private final UserRepository users;
@@ -27,7 +29,11 @@ public class AuthServiceImpl implements AuthService {
         this.userHelper = userHelper;
         this.passwords = passwords;
         this.sessions = sessions;
-        this.dummyPasswordHash = passwords.encode("unused-account-timing-comparison");
+        // A real work-factor hash of an unknowable value: login() runs one bcrypt
+        // comparison even when the account does not exist, so response time does not
+        // reveal which emails are registered. Random input also means it can never
+        // match a submitted password, and it is generated rather than hardcoded.
+        this.dummyPasswordHash = passwords.encode(UUID.randomUUID().toString());
     }
 
     @Override

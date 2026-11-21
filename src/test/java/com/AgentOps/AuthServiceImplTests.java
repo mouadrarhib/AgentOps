@@ -31,7 +31,7 @@ class AuthServiceImplTests {
 
     @BeforeEach
     void setup() {
-        when(passwords.encode("unused-account-timing-comparison")).thenReturn("dummy-hash");
+        when(passwords.encode(anyString())).thenReturn("dummy-hash");
         service = new AuthServiceImpl(users, new UserHelper(users), passwords, sessions);
     }
 

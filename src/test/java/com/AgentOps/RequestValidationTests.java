@@ -61,6 +61,17 @@ class RequestValidationTests {
     }
 
     @Test
+    void profileUpdateRejectsBlankOptionalFieldsButAllowsOmission() {
+        assertTrue(VALIDATOR.validate(new UpdateProfileRequest("new@example.test", null, "current-password")).isEmpty());
+        assertFalse(VALIDATOR.validateProperty(
+                new UpdateProfileRequest("   ", null, "current-password"), "email").isEmpty());
+        assertFalse(VALIDATOR.validateProperty(
+                new UpdateProfileRequest(null, " ".repeat(8), "current-password"), "password").isEmpty());
+        assertTrue(VALIDATOR.validateProperty(
+                new UpdateProfileRequest(null, "new-password", "current-password"), "password").isEmpty());
+    }
+
+    @Test
     void rejectsNonPositiveReferencesMissingEnumsAndBlankText() {
         OrderRequest order = new OrderRequest(0L, null);
         assertEquals(2, VALIDATOR.validate(order).size());
