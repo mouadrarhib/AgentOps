@@ -26,11 +26,14 @@ it('keeps the composer outside the scrollable thread, anchored after it in the c
   await screen.findByText('Message 40')
 
   const panel = document.querySelector('.chat-panel')!
-  const [header, thread, composer] = Array.from(panel.children)
+  const [header, viewport, composer] = Array.from(panel.children)
   expect(header.className).toBe('chat-panel-top')
-  expect(thread.className).toBe('chat-thread')
+  expect(viewport.className).toBe('chat-viewport')
   expect(composer.tagName).toBe('FORM')
   expect(composer.className).toContain('chat-composer')
+
+  const thread = viewport.querySelector('.chat-thread')!
+  expect(thread).toBeTruthy()
 
   expect(thread.querySelectorAll('.chat-message')).toHaveLength(40)
   expect(thread.contains(composer)).toBe(false)

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowUp, ChatCircleDots, Plus, Sparkle } from '@phosphor-icons/react'
+import { ArrowDown, ArrowUp, ChatCircleDots, Plus, Sparkle } from '@phosphor-icons/react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '../../components/motion/button/base'
 import { DataState, PageHeader, Pager } from '../../components/Workspace'
@@ -10,6 +10,7 @@ import { api, dateLabel, timeLabel } from '../../lib/api'
 import { errorMessage } from '../../lib/http'
 
 const suggestions = ['Show my recent orders', 'List my support tickets', 'Help me create a ticket for an order']
+const BOTTOM_THRESHOLD = 32
 
 export function AssistantPage() {
   const navigate = useNavigate()
@@ -20,6 +21,7 @@ export function AssistantPage() {
   const [conversationPage, setConversationPage] = useState(0)
   const [messagePage, setMessagePage] = useState(0)
   const threadRef = useRef<HTMLDivElement>(null)
+  const [showScrollDown, setShowScrollDown] = useState(false)
   const [message, setMessage] = useState('')
   const [pendingMessage, setPendingMessage] = useState('')
   const [lastToolActivity, setLastToolActivity] = useState<{ conversationId: number; count: number } | null>(null)
@@ -30,7 +32,21 @@ export function AssistantPage() {
   useEffect(() => {
     const thread = threadRef.current
     if (thread) thread.scrollTop = thread.scrollHeight
+    setShowScrollDown(false)
   }, [conversationId, lastMessageId, pendingMessage, detail.isPending])
+  function handleThreadScroll() {
+    const thread = threadRef.current
+    if (!thread) return
+    const distanceFromBottom = thread.scrollHeight - thread.scrollTop - thread.clientHeight
+    setShowScrollDown(distanceFromBottom > BOTTOM_THRESHOLD)
+  }
+  function scrollToLatest() {
+    const thread = threadRef.current
+    if (!thread) return
+    if (typeof thread.scrollTo === 'function') thread.scrollTo({ top: thread.scrollHeight, behavior: 'smooth' })
+    else thread.scrollTop = thread.scrollHeight
+    setShowScrollDown(false)
+  }
   const send = useMutation({
     mutationFn: (text: string) => api.chat(text, conversationId),
     onSuccess: response => {
@@ -75,13 +91,16 @@ export function AssistantPage() {
         <Pager page={conversationPage} totalPages={conversations.data?.totalPages ?? 0} onChange={setConversationPage}/>
       </aside>
       <section className="chat-panel" aria-label="Assistant chat"><div className="chat-panel-top"><span className="agent-avatar"><Sparkle size={20} weight="fill"/></span><div><strong>AgentOps assistant</strong><small>Responses use your account's available records</small></div></div>
-        <div className="chat-thread" ref={threadRef} aria-live="polite">
+        <div className="chat-viewport">
+        <div className="chat-thread" ref={threadRef} aria-live="polite" onScroll={handleThreadScroll}>
           {invalidId ? <div className="data-state data-error" role="alert">Invalid conversation ID.</div> : conversationId ? <DataState loading={detail.isPending} error={detail.error} onRetry={() => void detail.refetch()} empty={messages.length === 0}>
             {messages.length === 0 ? <p>No messages in this conversation yet.</p> : <><div className="message-page-control"><Pager page={messagePage} totalPages={detail.data?.totalPages ?? 0} onChange={setMessagePage}/></div>{messages.map(item => <div key={item.id} className={`chat-message ${item.role === 'USER' ? 'from-user' : 'from-agent'}`}><span className="message-author">{item.role === 'USER' ? 'You' : 'AgentOps'}<time>{timeLabel(item.createdAt)}</time></span><p>{item.content}</p>{item.role === 'ASSISTANT' && <div className="message-actions"><CopyMessageButton text={item.content}/></div>}</div>)}{lastToolActivity?.conversationId === conversationId && lastToolActivity.count > 0 && <span className="tool-count">{lastToolActivity.count} backend tool {lastToolActivity.count === 1 ? 'call' : 'calls'} in the last reply</span>}</>}
           </DataState> : <div className="chat-empty"><div className="chat-empty-mark"><Sparkle size={32} weight="fill"/></div><h2>Ask AgentOps</h2><p>Find order details, check tickets, or ask for help with a support request. The assistant can request backend tools; Java checks and runs them.</p><div className="suggestions">{suggestions.map(text => <button key={text} type="button" onClick={() => setMessage(text)}>{text} <ArrowUp size={15}/></button>)}</div></div>}
           {send.isPending && <div className="chat-message from-user pending"><span className="message-author">You</span><p>{pendingMessage}</p></div>}
           {send.isPending && <TypingBubble/>}
           {send.error && <div className="chat-error" role="alert"><strong>Could not complete that reply.</strong><p>{errorMessage(send.error)}</p><small>If the connection failed after a write request, check orders or tickets before trying again.</small></div>}
+        </div>
+        {showScrollDown && <button type="button" className="scroll-to-bottom" aria-label="Scroll to latest message" onClick={scrollToLatest}><ArrowDown size={18} weight="bold"/></button>}
         </div>
         <form className="chat-composer" onSubmit={submit}><label htmlFor="agent-message" className="sr-only">Message AgentOps</label><textarea id="agent-message" rows={2} maxLength={4000} value={message} onChange={event => setMessage(event.target.value)} onKeyDown={handleKeyDown} placeholder="Ask about an order or support ticket…" disabled={send.isPending || invalidId}/><Button type="submit" size="icon" aria-label="Send message" disabled={!message.trim() || send.isPending || invalidId}><ArrowUp size={20} weight="bold"/></Button><small>Enter to send · Shift+Enter for a new line</small></form>
       </section>

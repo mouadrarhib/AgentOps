@@ -224,7 +224,8 @@ tbody tr:hover { background: #173754; }
 .chat-panel-top strong, .chat-panel-top small { display: block; }
 .chat-panel-top strong { font-size: 13px; }
 .chat-panel-top small { color: var(--text-muted); font-size: 11px; margin-top: 3px; }
-.chat-thread { flex: 1 1 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 28px clamp(18px,4vw,48px); }
+.chat-viewport { position: relative; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+.chat-thread { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 28px clamp(18px,4vw,48px); }
 .chat-thread .data-state { background: transparent; border: 0; min-height: min(350px,100%); }
 .chat-empty { max-width: 560px; margin: 54px auto 0; text-align: center; }
 .chat-empty-mark { width: 63px; height: 63px; display: grid; place-items: center; margin: 0 auto 19px; border-radius: 19px; background: #302d65; color: #d0c2ff; border: 1px solid #806ec9; }
@@ -272,6 +273,10 @@ tbody tr:hover { background: #173754; }
 .chat-composer textarea::placeholder { color: #9ab0cc; }
 .chat-composer button { width: 45px; height: 45px; border-radius: 12px; }
 .chat-composer small { flex-basis: 100%; color: #8faac9; font-size: 10px; }
+.scroll-to-bottom { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 2; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; border: 1px solid #3d5f82; background: #122f4d; color: #cfe6fb; box-shadow: 0 4px 12px #020a1499; padding: 0; transition: transform .15s ease, background-color .15s ease, border-color .15s ease, color .15s ease; }
+.scroll-to-bottom:hover { transform: translate(-50%, -1px); background: #1a4165; border-color: var(--primary); color: var(--primary); }
+.scroll-to-bottom:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.scroll-to-bottom svg { flex: none; }
 .assistant-note { color: var(--text-muted); font-size: 12px; margin: 14px 3px 0; }
 
 @media (max-width: 1120px) {
@@ -307,6 +312,7 @@ tbody tr:hover { background: #173754; }
   .filter-bar input { width: 100%; }
   .topbar-status { display: none; }
   .chat-thread { padding: 20px 16px; }
+  .scroll-to-bottom { bottom: 16px; width: 32px; height: 32px; }
   .suggestions { justify-content: flex-start; }
   .table-panel { padding: 0 14px 14px; }
   .table-panel .panel-heading { padding: 20px 5px 14px; }
