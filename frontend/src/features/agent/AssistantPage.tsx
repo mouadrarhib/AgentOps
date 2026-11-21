@@ -4,6 +4,7 @@ import { ArrowUp, ChatCircleDots, Plus, Sparkle } from '@phosphor-icons/react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '../../components/motion/button/base'
 import { DataState, PageHeader, Pager } from '../../components/Workspace'
+import { TypingBubble } from './TypingBubble'
 import { api, dateLabel, timeLabel } from '../../lib/api'
 import { errorMessage } from '../../lib/http'
 
@@ -71,7 +72,7 @@ export function AssistantPage() {
             {detail.data?.messages.length === 0 ? <p>No messages in this conversation yet.</p> : <><div className="message-page-control"><Pager page={messagePage} totalPages={detail.data?.totalPages ?? 0} onChange={setMessagePage}/></div>{detail.data?.messages.map(item => <div key={item.id} className={`chat-message ${item.role === 'USER' ? 'from-user' : 'from-agent'}`}><span className="message-author">{item.role === 'USER' ? 'You' : 'AgentOps'}<time>{timeLabel(item.createdAt)}</time></span><p>{item.content}</p></div>)}{lastToolActivity?.conversationId === conversationId && lastToolActivity.count > 0 && <span className="tool-count">{lastToolActivity.count} backend tool {lastToolActivity.count === 1 ? 'call' : 'calls'} in the last reply</span>}</>}
           </DataState> : <div className="chat-empty"><div className="chat-empty-mark"><Sparkle size={32} weight="fill"/></div><h2>Ask AgentOps</h2><p>Find order details, check tickets, or ask for help with a support request. The assistant can request backend tools; Java checks and runs them.</p><div className="suggestions">{suggestions.map(text => <button key={text} type="button" onClick={() => setMessage(text)}>{text} <ArrowUp size={15}/></button>)}</div></div>}
           {send.isPending && <div className="chat-message from-user pending"><span className="message-author">You</span><p>{pendingMessage}</p></div>}
-          {send.isPending && <div className="reply-waiting" role="status"><span className="loading-dot"/> AgentOps is preparing a reply…</div>}
+          {send.isPending && <TypingBubble/>}
           {send.error && <div className="chat-error" role="alert"><strong>Could not complete that reply.</strong><p>{errorMessage(send.error)}</p><small>If the connection failed after a write request, check orders or tickets before trying again.</small></div>}
         </div>
         <form className="chat-composer" onSubmit={submit}><label htmlFor="agent-message" className="sr-only">Message AgentOps</label><textarea id="agent-message" rows={2} maxLength={4000} value={message} onChange={event => setMessage(event.target.value)} onKeyDown={handleKeyDown} placeholder="Ask about an order or support ticket…" disabled={send.isPending || invalidId}/><Button type="submit" size="icon" aria-label="Send message" disabled={!message.trim() || send.isPending || invalidId}><ArrowUp size={20} weight="bold"/></Button><small>Enter to send · Shift+Enter for a new line</small></form>

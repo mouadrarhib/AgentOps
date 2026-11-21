@@ -118,7 +118,7 @@ npm install
 npm run dev
 ```
 
-Open the URL printed by Vite (usually `http://localhost:5173`). The Vite dev server proxies the API, agent, order, and ticket routes to `http://localhost:8080`. Sign in with an existing account; the frontend has no registration page. The backend still exposes `POST /api/auth/register` for creating a customer account through the API. The browser uses HttpOnly auth cookies, requests a CSRF token before writes, and uses the rotating refresh cookie to restore an expired session after reload. It does not keep token values in JavaScript storage. For a separate production origin, set `VITE_API_BASE_URL` and include that exact origin in `CORS_ALLOWED_ORIGINS`. Build the frontend independently with `npm run build`.
+Open the URL printed by Vite (`http://localhost:5173`). The Vite dev server proxies the API, agent, order, and ticket routes to `http://localhost:8080`. Sign in with an existing account; the frontend has no registration page. The backend still exposes `POST /api/auth/register` for creating a customer account through the API. The browser uses HttpOnly auth cookies, requests a CSRF token before writes, and uses the rotating refresh cookie to restore an expired session after reload. It does not keep token values in JavaScript storage. For a separate production origin, set `VITE_API_BASE_URL` and include that exact origin in `CORS_ALLOWED_ORIGINS`. Build the frontend independently with `npm run build`.
 
 ### Option A · Docker Compose
 
